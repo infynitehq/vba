@@ -21,6 +21,20 @@
       error instanceof Error ? error.message : String(error);
     send('error', { message: message.textContent });
   };
+  // The pinned core stores this promise without awaiting it or attaching a
+  // rejection handler. Safari's denial is just "Permission was denied", so it
+  // cannot safely be identified by the global error handler below. Handle the
+  // optional request at its source, while preserving its result for callers.
+  // This navigator belongs to the player frame; React owns the app's wake lock.
+  if (navigator.wakeLock?.request) {
+    const wakeLock = navigator.wakeLock;
+    const requestWakeLock = wakeLock.request.bind(wakeLock);
+    wakeLock.request = (...args) => {
+      const result = requestWakeLock(...args);
+      void result.catch(() => {});
+      return result;
+    };
+  }
   const request = (req) =>
     new Promise((resolve, reject) => {
       req.onsuccess = () => resolve(req.result);
