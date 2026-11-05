@@ -1,0 +1,11 @@
+[
+  "loader.js",
+  "emulator.min.js",
+  "emulator.min.css",
+  "version.json",
+  "cores/mgba-wasm.data",
+  "cores/mgba-legacy-wasm.data",
+  "cores/reports/mgba.json",
+  "compression/extract7z.js",
+  "compression/extractzip.js"
+]

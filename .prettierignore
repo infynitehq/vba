@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist
+node_modules
+public/emulatorjs
+src/routeTree.gen.ts
+test-results
+playwright-report
+src/lib/hairline/kernel.js

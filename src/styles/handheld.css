@@ -1,0 +1,38 @@
+/* Scoped Hairline palette: geometry stays opaque and follows the app theme. */
+.handheld-illustration {
+  --handheld-line: color-mix(
+    in oklch,
+    var(--foreground) 55%,
+    var(--background)
+  );
+  --handheld-dim: color-mix(in oklch, var(--foreground) 22%, var(--background));
+}
+
+.handheld-illustration :is(path, rect) {
+  fill: var(--background);
+  stroke: var(--handheld-line);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.handheld-illustration .sil {
+  stroke: var(--handheld-line);
+}
+
+.handheld-illustration .lo {
+  stroke: var(--handheld-dim);
+}
+
+.handheld-illustration .hi {
+  stroke: var(--foreground);
+}
+
+.handheld-illustration .nf,
+.handheld-illustration .handheld-fallback path {
+  fill: none;
+}
+
+.handheld-fallback:has(+ g) {
+  display: none;
+}

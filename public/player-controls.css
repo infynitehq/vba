@@ -1,0 +1,319 @@
+/* Presentation only: the native EmulatorJS inputs and mapping handlers are kept. */
+#game .pocket-controls {
+  --control-line: #ffffff1f;
+  --control-muted: #aaa59d;
+  --control-primary: #f5b85a;
+  position: fixed;
+  inset: 0;
+  width: min(560px, calc(100% - 32px));
+  height: max-content;
+  max-height: calc(100% - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--control-line);
+  border-radius: 14px;
+  outline: none;
+  background: #191715;
+  color: #eeeae3 !important;
+  text-align: left;
+}
+#game .pocket-controls::backdrop {
+  background: #0008;
+  backdrop-filter: blur(4px);
+}
+#game .pocket-controls,
+#game .pocket-controls * {
+  font-family:
+    'Ioskeley Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#game .pocket-controls-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 34px);
+}
+#game .pocket-controls-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--control-line);
+  padding: 12px 20px;
+}
+#game .pocket-controls-header h4 {
+  margin: 0;
+  padding: 0;
+  color: #eeeae3;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+#game .pocket-controls-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #eeeae3;
+  cursor: pointer;
+}
+#game .pocket-controls-close svg {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+#game .pocket-controls .ejs_control_body {
+  height: auto;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: #eeeae3 !important;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff38 transparent;
+}
+#game .pocket-controls .ejs_control_body::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+#game .pocket-controls .ejs_control_body::-webkit-scrollbar-track {
+  background: transparent;
+}
+#game .pocket-controls .ejs_control_body::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #ffffff38;
+}
+#game .pocket-controls .ejs_control_body::-webkit-scrollbar-thumb:hover {
+  background: #ffffff55;
+}
+#game .pocket-controls .ejs_control_player_bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--control-line);
+  border-radius: 0;
+  list-style: none;
+}
+#game .pocket-controls .ejs_control_player_bar li {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+#game .pocket-controls .ejs_control_player_bar a {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--control-muted) !important;
+  font-size: 11px;
+  text-decoration: none;
+}
+#game .pocket-controls .ejs_control_selected a {
+  border-bottom-color: var(--control-primary);
+  background: transparent;
+  color: #f8dda1 !important;
+}
+#game
+  .pocket-control-devices
+  > div:not(.ejs_gamepad_section):not(.ejs_control_row) {
+  display: none;
+}
+#game .pocket-controls .ejs_gamepad_section {
+  display: none;
+}
+#game .pocket-control-devices .ejs_control_row {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  width: auto !important;
+  float: none !important;
+  padding: 8px 0 !important;
+  text-align: left;
+}
+#game .pocket-control-devices .ejs_control_row input[type='checkbox'] {
+  position: static;
+  z-index: auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  opacity: 1;
+  accent-color: var(--control-primary);
+  cursor: pointer;
+}
+#game .pocket-control-devices .ejs_control_row label {
+  color: #eeeae3;
+  font-size: 11px;
+  cursor: pointer;
+}
+#game .pocket-control-devices .ejs_control_row label::before,
+#game .pocket-control-devices .ejs_control_row label::after {
+  display: none !important;
+}
+#game .pocket-control-columns,
+#game .pocket-binding {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, 120px) 64px;
+  align-items: center;
+  gap: 10px;
+}
+#game .pocket-control-columns {
+  padding: 10px 0;
+  color: var(--control-muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#game .pocket-control-columns span {
+  color: inherit;
+}
+#game .pocket-binding {
+  margin: 0 !important;
+  padding: 6px 0;
+  border-top: 1px solid var(--control-line);
+  background: none;
+}
+#game .pocket-binding > div,
+#game .pocket-binding-inputs > div {
+  width: auto !important;
+  min-width: 0;
+  float: none !important;
+  padding: 0 !important;
+}
+#game .pocket-binding-name label {
+  display: block;
+  color: #eeeae3;
+  font-size: 10px;
+  line-height: 1.6;
+  text-transform: lowercase;
+}
+#game .pocket-binding-name label::first-letter {
+  text-transform: uppercase;
+}
+#game .pocket-binding-inputs {
+  display: contents;
+}
+#game .pocket-binding-inputs > div:last-child {
+  display: none;
+}
+#game .pocket-binding-inputs > [data-binding-kind='Gamepad'] {
+  display: none !important;
+}
+#game .pocket-controls .ejs_control_body input[type='text'] {
+  width: 100% !important;
+  height: 30px !important;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--control-line);
+  border-radius: 5px;
+  background: #ffffff05;
+  color: #eeeae3 !important;
+  font-size: 10px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+#game .pocket-controls input::placeholder {
+  color: var(--control-muted);
+}
+#game .pocket-controls .ejs_control_set_button,
+#game .pocket-controls-footer .ejs_button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #f5b85a44;
+  border-radius: 5px;
+  background: transparent;
+  color: #f8dda1 !important;
+  font-size: 10px;
+  line-height: 1.5;
+  text-decoration: none;
+  cursor: pointer;
+}
+#game .pocket-binding-action {
+  display: flex;
+  justify-content: flex-end;
+}
+#game .pocket-binding-action .ejs_control_set_button {
+  min-height: 32px;
+  padding: 6px;
+  border-color: transparent;
+}
+#game .pocket-controls-footer {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--control-line);
+}
+#game .pocket-controls-footer .ejs_button:last-child {
+  margin-left: auto;
+  background: #f5b85a0d;
+}
+#game .pocket-controls a:hover,
+#game .pocket-controls-close:hover {
+  background: #ffffff0d;
+}
+#game .pocket-controls :is(a, button, select, input):focus-visible {
+  outline: 2px solid var(--control-primary);
+  outline-offset: 2px;
+}
+#game .pocket-controls [hidden] {
+  display: none !important;
+}
+#game .pocket-control-capture {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0009;
+  backdrop-filter: blur(4px);
+}
+#game .pocket-control-capture .ejs_popup_box {
+  position: static;
+  width: min(320px, calc(100% - 32px));
+  margin: 0;
+  padding: 24px;
+  border: 1px solid var(--control-line);
+  border-radius: 10px;
+  background: #191715 !important;
+  text-align: center;
+  font-size: 12px;
+}
+@media (max-width: 575px) {
+  #game .pocket-controls-header,
+  #game .pocket-controls .ejs_control_body,
+  #game .pocket-controls-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  #game .pocket-controls .ejs_control_player_bar a {
+    min-height: 40px;
+    font-size: 10px;
+  }
+  #game .pocket-binding {
+    grid-template-columns: minmax(0, 1fr) 72px 56px;
+    gap: 8px;
+  }
+  #game .pocket-control-columns {
+    grid-template-columns: minmax(0, 1fr) 72px 56px;
+    gap: 8px;
+  }
+}

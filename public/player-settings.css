@@ -1,0 +1,271 @@
+/* Minimal settings navigation; native setting values and callbacks are unchanged. */
+#game .pocket-settings {
+  --settings-line: #ffffff1f;
+  --settings-muted: #aaa59d;
+  --settings-primary: #f5b85a;
+  position: fixed;
+  inset: 0;
+  width: min(480px, calc(100% - 32px));
+  height: max-content;
+  max-height: calc(100% - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--settings-line);
+  border-radius: 12px;
+  background: #191715;
+  color: #eeeae3;
+  box-shadow: none;
+  outline: none;
+  overflow: hidden;
+  white-space: normal;
+  animation: none;
+  backdrop-filter: none;
+}
+#game .pocket-settings::before,
+#game .pocket-settings::after {
+  display: none;
+}
+#game .pocket-settings::backdrop {
+  background: #0008;
+  backdrop-filter: blur(4px);
+}
+#game .pocket-settings,
+#game .pocket-settings * {
+  font-family:
+    'Ioskeley Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+#game .pocket-settings [hidden] {
+  display: none !important;
+}
+#game .pocket-settings-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 34px);
+}
+#game .pocket-settings-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--settings-line);
+}
+#game .pocket-settings-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #eeeae3;
+}
+#game .pocket-settings-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #eeeae3;
+  cursor: pointer;
+}
+#game .pocket-settings-close svg {
+  width: 20px;
+  height: 20px;
+}
+#game .pocket-settings .ejs_settings_transition {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0;
+  padding: 8px 20px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff38 transparent;
+  transition: none;
+}
+#game .pocket-settings .ejs_settings_transition::-webkit-scrollbar {
+  width: 5px;
+}
+#game .pocket-settings .ejs_settings_transition::-webkit-scrollbar-track {
+  background: transparent;
+}
+#game .pocket-settings .ejs_settings_transition::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #ffffff38;
+}
+#game .pocket-settings .ejs_settings_transition > div,
+#game .pocket-settings .ejs_parent_option_div,
+#game .pocket-settings .ejs_setting_menu {
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible;
+}
+#game .pocket-settings .ejs_setting_menu {
+  padding: 0;
+}
+#game .pocket-settings .ejs_settings_main_bar {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--settings-line);
+  border-radius: 0;
+  background: none;
+  color: #eeeae3;
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+#game .pocket-settings .ejs_settings_main_bar:last-child {
+  border-bottom: 0;
+}
+#game .pocket-settings .ejs_settings_main_bar > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: inherit;
+}
+#game .pocket-settings .ejs_settings_main_bar_selected {
+  display: block;
+  flex-shrink: 0;
+  max-width: 48%;
+  margin: 0 0 0 auto;
+  padding: 0;
+  overflow: hidden;
+  color: var(--settings-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#game .pocket-settings .ejs_settings_main_bar::after {
+  position: static;
+  flex-shrink: 0;
+  width: auto;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: var(--settings-muted);
+  content: '›';
+  font-size: 20px;
+  line-height: 1;
+  transform: none;
+}
+#game .pocket-settings .ejs_settings_main_bar:hover {
+  color: #f8dda1;
+}
+#game .pocket-settings .ejs_back_button {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--settings-line);
+  border-radius: 0;
+  background: none;
+  color: #eeeae3;
+  font-size: 11px;
+  line-height: 1.6;
+  box-shadow: none;
+  transition: none;
+}
+#game .pocket-settings .ejs_back_button::before {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  background: none;
+  color: var(--settings-primary);
+  box-shadow: none;
+  content: '←';
+}
+#game .pocket-settings .ejs_back_button::after {
+  display: none;
+}
+#game .pocket-settings .ejs_menu_text_a {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+#game .pocket-settings .ejs_option_row {
+  min-height: 44px;
+  gap: 10px;
+  margin: 4px 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: #eeeae3;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: normal;
+  box-shadow: none;
+  transition: background-color 140ms ease;
+}
+#game .pocket-settings .ejs_option_row > span {
+  color: inherit;
+}
+#game .pocket-settings .ejs_option_row::before {
+  display: none;
+}
+#game .pocket-settings .ejs_option_row::after {
+  display: none;
+  position: static;
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  opacity: 1;
+  background: none;
+  color: var(--settings-primary);
+  content: '✓';
+  transform: none;
+  transition: none;
+}
+#game .pocket-settings .ejs_option_row_selected {
+  border-color: #f5b85a44;
+  background: #f5b85a0d;
+  color: #f8dda1;
+}
+#game .pocket-settings .ejs_option_row_selected::after {
+  display: block;
+}
+#game .pocket-settings .ejs_option_row:hover,
+#game .pocket-settings-close:hover {
+  background: #ffffff0d;
+}
+#game .pocket-settings :is(button, [role='button']):focus-visible {
+  outline: 2px solid var(--settings-primary);
+  outline-offset: -2px;
+}
+@media (max-width: 575px) {
+  #game .pocket-settings-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  #game .pocket-settings .ejs_settings_transition {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #game .pocket-settings * {
+    transition: none !important;
+  }
+}

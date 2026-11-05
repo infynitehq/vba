@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' blob: data:; connect-src 'self' blob:; script-src 'self' blob: 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>Pocket GBA player</title>
+    <link rel="stylesheet" href="./fonts.css" />
+    <link rel="stylesheet" href="./player-toolbar.css" />
+    <link rel="stylesheet" href="./player-controls.css" />
+    <link rel="stylesheet" href="./player-settings.css" />
+    <style>
+      html,
+      body,
+      #game {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #191715;
+        color: #eeeae3;
+        font-family: 'Ioskeley Mono', monospace;
+        font-synthesis: none;
+        -webkit-font-smoothing: antialiased;
+      }
+      #message {
+        position: absolute;
+        inset: 45% 24px auto;
+        text-align: center;
+      }
+      button {
+        font: inherit;
+        min-height: 44px;
+        background: #f2e9dc;
+        color: #1b1412;
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="message" role="status">Opening your game…</div>
+    <script src="./player-toolbar.js"></script>
+    <script src="./player-settings.js"></script>
+    <script src="./player.js"></script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vercel/
+public/emulatorjs/
+test-results/
+playwright-report/
+.env.local
+*.gba
+*.sav
