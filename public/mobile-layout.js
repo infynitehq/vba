@@ -95,6 +95,7 @@
     config: {},
     touch: true,
     elements: { parent: game, menu: bar, bottomBar },
+    isPopupOpen: () => false,
     getControlScheme: () => 'gba',
     localization: (text) => text,
     on: () => {},

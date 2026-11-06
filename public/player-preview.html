@@ -66,8 +66,13 @@
       }
       @media (orientation: landscape) and (max-height: 600px) {
         .preview-placeholder {
-          padding: 104px 150px 64px;
+          width: min(100%, 150dvh);
+          margin-inline: auto;
+          padding: 24px;
           gap: 8px;
+        }
+        #game .ejs_canvas_parent {
+          background: #000;
         }
         .preview-placeholder img {
           display: none;

@@ -41,6 +41,7 @@ function Player() {
   const [channel] = useState(() => crypto.randomUUID());
   const [ready, setReady] = useState(false);
   const [showCheats, setShowCheats] = useState(false);
+  const [cheatsPending, setCheatsPending] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
   const { data: cheats = [] } = useQuery(cheatsQuery(gameId));
   const played = useDataMutation(data.played);
@@ -63,6 +64,8 @@ function Player() {
       )
         return;
       if (event.data.type === 'ready') setReady(true);
+      if (event.data.type === 'cheats-pending')
+        setCheatsPending(event.data.pending === true);
       if (event.data.type === 'saved')
         void client.invalidateQueries({ queryKey: ['games'] });
       if (event.data.type === 'error') toast(event.data.message);
@@ -233,12 +236,23 @@ function Player() {
         <Button
           className={`${textButton} text-[#eeeae3] hover:bg-[#22201d] hover:text-white`}
           onClick={() => setShowCheats(true)}
+          aria-label="Cheats"
+          title="Cheats"
         >
           <Icon name="cheats" size={16} />
           Cheats
         </Button>
       }
     >
+      {cheatsPending && (
+        <p
+          role="status"
+          className="shrink-0 px-4 pb-2 text-center text-xs text-[#eeeae3]"
+        >
+          Cheat changes apply next launch. Save in-game, then return to the
+          Library and reopen the game.
+        </p>
+      )}
       <iframe
         key={gameId}
         ref={iframe}
@@ -248,7 +262,7 @@ function Player() {
         className="min-h-0 w-full flex-1 border-0"
       />
       {showCheats && (
-        <CheatSheet game={game} onClose={() => setShowCheats(false)} />
+        <CheatSheet game={game} playing onClose={() => setShowCheats(false)} />
       )}
       <Dialog open={confirmExit} onOpenChange={setConfirmExit}>
         <DialogContent backdropClassName="bg-black/45 backdrop-blur-sm">

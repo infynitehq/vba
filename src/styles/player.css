@@ -44,6 +44,9 @@
 }
 
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+  .player-toolbar-idle .player-header {
+    visibility: hidden;
+  }
   .player-header {
     position: absolute;
     inset: env(safe-area-inset-top) env(safe-area-inset-right) auto
@@ -51,17 +54,29 @@
     z-index: 2;
     min-height: 44px;
     pointer-events: none;
-    background: linear-gradient(#0007, transparent);
+    background: none;
   }
 
   .player-header > button {
+    position: absolute;
+    top: 8px;
+    width: 44px;
+    padding: 0;
+    font-size: 0;
     pointer-events: auto;
     text-shadow: 0 1px 3px #0008;
   }
 
+  .player-header > button:first-child {
+    left: calc(50% - 166px);
+  }
+
+  .player-header > button:last-child {
+    right: calc(50% - 118px);
+  }
+
   .player-title {
-    opacity: 0.7;
-    text-shadow: 0 1px 3px #0008;
+    display: none;
   }
 
   .player-eyebrow {

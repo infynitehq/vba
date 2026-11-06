@@ -13,6 +13,7 @@
     started = false,
     pendingCheats = [];
   let saveTask = Promise.resolve();
+  let launchedCheats;
   let previousSave;
   const message = document.getElementById('message');
   const report = (error) => {
@@ -124,39 +125,28 @@
   function applyCheats(cheats) {
     pendingCheats = cheats;
     if (!started) return;
-    const emulator = window.EJS_emulator;
+    const enabled = cheats.filter((cheat) => cheat.enabled);
+    const codes = enabled.map((cheat) => cheat.code.replace(/\n/g, '+'));
+    const signature = JSON.stringify(codes);
+    if (launchedCheats !== undefined) {
+      send('cheats-pending', { pending: signature !== launchedCheats });
+      return;
+    }
+    // The pinned mGBA reset path frees master-code hooks without restoring
+    // their ROM instructions. Reinstalling a hook can execute a breakpoint as
+    // its own original instruction and hang the browser. Never reset/rebuild
+    // live cheats. A fresh player applies the selected codes once, in order.
+    // One call also avoids frontend reapplication between individual entries.
+    launchedCheats = signature;
     try {
-      emulator.gameManager.resetCheat();
+      if (codes.length)
+        window.EJS_emulator.gameManager.setCheat(0, true, codes.join('+'));
     } catch (error) {
-      for (const cheat of cheats.filter((cheat) => cheat.enabled))
+      for (const cheat of enabled)
         send('cheat-error', { label: cheat.label, message: String(error) });
       return;
     }
-    emulator.cheats = [];
-    let index = 0;
-    for (const cheat of cheats) {
-      try {
-        // mGBA accepts '+' between lines. Rebuild only enabled codes because
-        // some libretro mGBA builds ignore the enabled flag when adding codes.
-        if (cheat.enabled)
-          emulator.gameManager.setCheat(
-            index++,
-            true,
-            cheat.code.replace(/\n/g, '+'),
-          );
-        emulator.cheats.push({
-          desc: cheat.label,
-          code: cheat.code,
-          checked: cheat.enabled,
-          is_permanent: true,
-        });
-      } catch (error) {
-        send('cheat-error', { label: cheat.label, message: String(error) });
-      }
-    }
-    send('cheats-applied', {
-      count: cheats.filter((cheat) => cheat.enabled).length,
-    });
+    send('cheats-applied', { count: enabled.length });
   }
   function trackSave(save) {
     if (!save?.length) return;

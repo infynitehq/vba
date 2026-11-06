@@ -35,7 +35,10 @@ test('cheats dialog supports editing, toggling, backups, and nested notification
     sheet.getByRole('checkbox', { name: 'Enable Extra lives' }),
   ).toBeChecked();
   await expect(sheet.getByText('1 active', { exact: true })).toBeVisible();
-  await sheet.getByRole('button', { name: 'Edit Extra lives' }).click();
+  await sheet
+    .getByRole('button', { name: 'More options for Extra lives' })
+    .click();
+  await page.getByRole('menuitem', { name: 'Edit Extra lives' }).click();
   await expect(sheet.getByLabel('Name', { exact: true })).toHaveValue(
     'Extra lives',
   );
@@ -67,7 +70,10 @@ test('cheats dialog supports editing, toggling, backups, and nested notification
   }
   await page.screenshot({ path: 'test-results/cheats-dialog.png' });
   page.once('dialog', (dialog) => dialog.accept());
-  await sheet.getByRole('button', { name: 'Delete Extra lives' }).click();
+  await sheet
+    .getByRole('button', { name: 'More options for Extra lives' })
+    .click();
+  await page.getByRole('menuitem', { name: 'Delete Extra lives' }).click();
   await expect(
     sheet.getByRole('heading', { name: 'No cheats yet' }),
   ).toBeVisible();

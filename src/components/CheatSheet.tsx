@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { useQuery } from '@tanstack/react-query';
 import type { Game } from '../data/db';
@@ -18,25 +18,27 @@ import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from './ui/dropdown-menu';
+import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
 } from './ui/dialog';
-import {
-  button,
-  primaryButton,
-  textButton,
-  iconButton,
-  fieldInput,
-} from './ui';
+import { button, primaryButton, iconButton, fieldInput } from './ui';
 
 export function CheatSheet({
   game,
   onClose,
+  playing = false,
 }: {
   game: Game;
   onClose: () => void;
+  playing?: boolean;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -58,28 +60,29 @@ export function CheatSheet({
       }}
     >
       <DialogContent
-        className="flex max-h-[min(90dvh,48rem)] max-w-xl flex-col overflow-hidden p-0 sm:p-0"
+        className={`flex max-h-[min(90dvh,40rem)] flex-col overflow-hidden p-0 sm:p-0 ${editing ? 'max-w-lg' : 'max-w-2xl'}`}
         backdropClassName="backdrop-blur-sm"
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-5 sm:px-6">
+        <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-5 pb-4 sm:px-6">
           <div className="min-w-0 flex-1">
             <DialogTitle
               id="cheat-title"
-              className="text-xl font-semibold tracking-tight"
+              className="text-lg font-semibold tracking-tight"
             >
               Cheats
             </DialogTitle>
-            <DialogDescription className="mt-2 flex min-w-0 items-center gap-2 text-[10px] whitespace-nowrap">
-              <span className="min-w-0 truncate text-xs">{game.name}</span>
-              <span className="shrink-0 rounded border border-line px-1.5 py-0.5">
-                {game.gameCode || 'Unknown region'}
+            <DialogDescription className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              <span className="max-w-full truncate">{game.name}</span>
+              <span aria-hidden="true">·</span>
+              <span>
+                {game.gameCode || 'Unknown region'} v{game.version}
               </span>
-              <span className="shrink-0">Version {game.version}</span>
               {!editing && (
                 <>
                   <span aria-hidden="true">·</span>
                   <span className="shrink-0">
-                    {cheats.filter((cheat) => cheat.enabled).length} active
+                    {cheats.filter((cheat) => cheat.enabled).length}{' '}
+                    {playing ? 'selected' : 'active'}
                   </span>
                 </>
               )}
@@ -90,10 +93,10 @@ export function CheatSheet({
             onClick={onClose}
             aria-label="Close cheats"
           >
-            <Icon name="close" />
+            <Icon name="close" size={18} />
           </Button>
         </div>
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-5 pb-2 sm:px-6">
           {editing ? (
             <CheatEditor
               key={typeof editing === 'string' ? 'new' : editing.id}
@@ -104,10 +107,10 @@ export function CheatSheet({
             />
           ) : (
             <>
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
                 <div className="-ml-2 flex flex-wrap">
                   <Button
-                    variant="primary"
+                    variant="ghost"
                     size="xs"
                     disabled={exported.isPending}
                     onClick={() =>
@@ -116,23 +119,20 @@ export function CheatSheet({
                       })
                     }
                   >
-                    <Icon name="download" size={13} />
                     Export<span className="sr-only"> JSON</span>
                   </Button>
                   <Button
-                    variant="primary"
+                    variant="ghost"
                     size="xs"
                     disabled={imported.isPending}
                     onClick={() => fileInput.current?.click()}
                   >
-                    <Icon name="upload" size={13} />
                     Import<span className="sr-only"> JSON</span>
                   </Button>
                 </div>
                 <Button
-                  variant="primary"
+                  variant="outline"
                   size="xs"
-                  className="border border-primary/25 hover:border-primary/40"
                   onClick={() => setEditing('new')}
                 >
                   <Icon name="plus" size={12} /> Add cheat
@@ -171,39 +171,22 @@ export function CheatSheet({
                 </p>
               )}
               {!isPending && !error && !cheats.length && (
-                <div className="rounded-lg border border-dashed border-line px-5 py-10 text-center">
-                  <span className="mb-4 inline-flex text-primary">
-                    <Icon name="cheats" size={28} />
-                  </span>
+                <div className="px-3 py-10 text-center">
                   <h3 className="text-sm font-medium">No cheats yet</h3>
                   <p className="mt-2 text-xs leading-relaxed text-muted">
-                    A little advantage, on your terms.
-                    <br />
                     Add a GameShark, Action Replay, or CodeBreaker code.
                   </p>
                 </div>
               )}
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
                 {cheats.map((cheat) => (
                   <article
-                    className={`rounded-lg border bg-surface/15 p-4 ${cheat.enabled ? 'border-primary/35' : 'border-line'}`}
+                    aria-label={cheat.label}
+                    className="flex min-w-0 flex-col gap-2 rounded-md border border-line bg-surface/10 p-3"
                     key={cheat.id}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-medium break-words">
-                          {cheat.label}
-                        </h3>
-                        {(cheat.gameCode || cheat.version !== undefined) && (
-                          <small className="mt-1 block font-mono text-xs text-muted">
-                            {cheat.gameCode ?? 'Any region'} ·{' '}
-                            {cheat.version === undefined
-                              ? 'Any version'
-                              : `v${cheat.version}`}
-                          </small>
-                        )}
-                      </div>
-                      <label className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center">
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
+                      <label className="-ml-1 inline-flex size-8 cursor-pointer items-center justify-center">
                         <Checkbox
                           aria-label={`Enable ${cheat.label}`}
                           checked={cheat.enabled}
@@ -218,48 +201,63 @@ export function CheatSheet({
                           }
                         />
                       </label>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-medium break-words">
+                          {cheat.label}
+                        </h3>
+                        {(cheat.gameCode || cheat.version !== undefined) && (
+                          <small className="mt-1 block text-[11px] text-muted">
+                            {cheat.gameCode ?? 'Any region'} ·{' '}
+                            {cheat.version === undefined
+                              ? 'Any version'
+                              : `v${cheat.version}`}
+                          </small>
+                        )}
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={<Button size="icon-xs" />}
+                          aria-label={`More options for ${cheat.label}`}
+                          title="Cheat actions"
+                        >
+                          <Icon name="more" size={16} />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-36">
+                          <DropdownMenuItem onClick={() => setEditing(cheat)}>
+                            Edit<span className="sr-only"> {cheat.label}</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="data-highlighted:bg-destructive/10 data-highlighted:text-ink"
+                            disabled={remove.isPending}
+                            onClick={() => {
+                              if (confirm(`Delete “${cheat.label}”?`))
+                                remove.mutate(cheat.id, {
+                                  onError: (error) =>
+                                    toast(friendlyError(error)),
+                                });
+                            }}
+                          >
+                            Delete
+                            <span className="sr-only"> {cheat.label}</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <pre
-                      tabIndex={0}
-                      aria-label={`Code for ${cheat.label}`}
-                      className="my-3 max-h-32 overflow-auto rounded-md border border-line bg-canvas p-3 font-mono text-xs leading-6"
-                    >
-                      {cheat.code}
-                    </pre>
                     {mismatch(cheat, game) && (
-                      <p className="mb-3 border-l-2 border-primary pl-2 text-xs leading-relaxed text-muted">
+                      <p className="text-xs leading-relaxed text-accent-foreground">
                         This code is tagged for a different game code or
                         version.
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-2 text-[10px] text-muted">
-                        <span
-                          aria-hidden="true"
-                          className={`size-1.5 rounded-full ${cheat.enabled ? 'bg-primary' : 'bg-line'}`}
-                        />
-                        {cheat.enabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                      <div className="-mr-2 flex">
-                        <Button
-                          className={textButton}
-                          onClick={() => setEditing(cheat)}
-                        >
-                          Edit<span className="sr-only"> {cheat.label}</span>
-                        </Button>
-                        <Button
-                          className={textButton}
-                          disabled={remove.isPending}
-                          onClick={() => {
-                            if (confirm(`Delete “${cheat.label}”?`))
-                              remove.mutate(cheat.id, {
-                                onError: (error) => toast(friendlyError(error)),
-                              });
-                          }}
-                        >
-                          Delete<span className="sr-only"> {cheat.label}</span>
-                        </Button>
-                      </div>
+                    <div className="mt-auto grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                      <pre
+                        tabIndex={0}
+                        aria-label={`Code for ${cheat.label}`}
+                        className="min-h-10 max-h-32 overflow-auto py-1 font-mono text-xs leading-5 text-muted"
+                      >
+                        {cheat.code}
+                      </pre>
+                      <CopyCheatButton code={cheat.code} label={cheat.label} />
                     </div>
                   </article>
                 ))}
@@ -267,17 +265,49 @@ export function CheatSheet({
             </>
           )}
         </div>
-        <div className="flex shrink-0 items-start gap-2 border-t border-line bg-surface/20 px-5 py-3 text-[10px] leading-relaxed text-muted sm:px-6">
-          <span className="mt-0.5 shrink-0">
-            <Icon name="shield" size={14} />
-          </span>
+        <div className="shrink-0 border-t border-line px-5 py-3 text-[11px] leading-relaxed text-muted sm:px-6">
           <p>
-            Match your game’s region and version. Some codes need a master code
-            or a restart.
+            {playing
+              ? 'Changes apply next launch. Save in-game before reopening.'
+              : 'Match your game’s region and version. Some codes need a restart.'}
           </p>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CopyCheatButton({ code, label }: { code: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const toast = useToast();
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+  return (
+    <>
+      <Button
+        size="icon-xs"
+        aria-label={`${copied ? 'Copied' : 'Copy'} code for ${label}`}
+        title={copied ? 'Copied' : 'Copy code'}
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+          } catch {
+            toast(
+              'Could not copy the code. Select the code and copy it manually.',
+            );
+          }
+        }}
+      >
+        <Icon name={copied ? 'check' : 'copy'} size={13} />
+      </Button>
+      <span role="status" className="sr-only">
+        {copied ? `${label} code copied.` : ''}
+      </span>
+    </>
   );
 }
 

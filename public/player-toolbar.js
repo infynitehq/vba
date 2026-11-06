@@ -342,6 +342,15 @@
     close.onclick = () => dialog.close();
     header.appendChild(close);
     dialog.appendChild(header);
+    if (touchInput) {
+      dialog.classList.add('pocket-more-touch');
+      const rotate = document.createElement('div');
+      rotate.className = 'pocket-rotate-prompt';
+      rotate.setAttribute('role', 'status');
+      rotate.innerHTML =
+        '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8" y="3" width="9" height="18" rx="2"/><path d="M4 14a8 8 0 0 1 0-8M1 8l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/></svg><p>Rotate your phone to portrait to view options.</p>';
+      dialog.appendChild(rotate);
+    }
     const actions = document.createElement('div');
     actions.className = 'pocket-more-actions';
     dialog.appendChild(actions);
@@ -646,6 +655,79 @@
     installSpeed(emulator, bar, { onOpen, onSpeedError });
     bar.appendChild(more);
     emulator.elements.parent.appendChild(dialog);
+    if (touchInput) {
+      const landscape = matchMedia(
+        '(orientation: landscape) and (max-height: 600px)',
+      );
+      const shell = window.frameElement?.closest('.player-shell');
+      const header = shell?.querySelector('.player-header');
+      const reveal = document.createElement('button');
+      reveal.type = 'button';
+      reveal.className = 'pocket-toolbar-reveal';
+      reveal.setAttribute('aria-label', 'Show game controls');
+      reveal.innerHTML = icon('more');
+      reveal.hidden = true;
+      emulator.elements.parent.append(reveal);
+      let timer;
+      let keyboardFocus = false;
+      const setHidden = (hidden) => {
+        bar.classList.toggle('pocket-toolbar-idle', hidden);
+        bar.inert = hidden;
+        if (header) header.inert = hidden;
+        shell?.classList.toggle('player-toolbar-idle', hidden);
+        reveal.hidden = !hidden;
+      };
+      const wake = () => {
+        clearTimeout(timer);
+        setHidden(false);
+        if (!landscape.matches) return;
+        timer = setTimeout(() => {
+          if (
+            document.querySelector('dialog[open]') ||
+            shell?.querySelector('dialog[open]') ||
+            emulator.settingsMenuOpen ||
+            emulator.isPopupOpen?.() ||
+            (keyboardFocus &&
+              (bar.contains(document.activeElement) ||
+                header?.contains(header.ownerDocument.activeElement)))
+          ) {
+            wake();
+            return;
+          }
+          setHidden(true);
+        }, 3500);
+      };
+      const pointerWake = () => {
+        keyboardFocus = false;
+        wake();
+      };
+      const keyWake = () => {
+        keyboardFocus = true;
+        wake();
+      };
+      reveal.addEventListener('click', wake);
+      for (const element of [bar, header].filter(Boolean)) {
+        element.addEventListener('pointerdown', pointerWake);
+        element.addEventListener('pointermove', pointerWake);
+        element.addEventListener('keydown', keyWake);
+        element.addEventListener('focusin', wake);
+      }
+      landscape.addEventListener('change', wake);
+      dialog.addEventListener('close', wake);
+      window.addEventListener(
+        'pagehide',
+        () => {
+          clearTimeout(timer);
+          setHidden(false);
+          for (const type of ['pointerdown', 'pointermove'])
+            header?.removeEventListener(type, pointerWake);
+          header?.removeEventListener('keydown', keyWake);
+          header?.removeEventListener('focusin', wake);
+        },
+        { once: true },
+      );
+      wake();
+    }
   }
   window.PocketToolbar = {
     options,

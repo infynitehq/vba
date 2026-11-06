@@ -31,3 +31,18 @@ export function diagnosticRom() {
   );
   return rom;
 }
+
+// Exercise the Thumb hook at 0x08000604 used by FireRed's Action Replay v1.1
+// master code, without including any commercial game code. The hook executes
+// NOP then loops, so repeatedly installing/removing it must remain safe.
+export function cheatHookRom() {
+  const rom = Buffer.alloc(2048);
+  diagnosticRom().copy(rom);
+  rom.writeUInt32LE(0xea000002, 0xe8); // b 0x080000f8
+  rom.writeUInt32LE(0xe59f0000, 0xf8); // ldr r0, [pc]
+  rom.writeUInt32LE(0xe12fff10, 0xfc); // bx r0 (switch to Thumb)
+  rom.writeUInt32LE(0x08000605, 0x100);
+  rom.writeUInt16LE(0x46c0, 0x604); // nop
+  rom.writeUInt16LE(0xe7fd, 0x606); // b 0x08000604
+  return rom;
+}

@@ -21,6 +21,8 @@ function MobileLayout() {
         <Button
           className={`${textButton} text-[#eeeae3] hover:bg-[#22201d] hover:text-white`}
           onClick={() => setRevision((value) => value + 1)}
+          aria-label="Reset"
+          title="Reset preview"
         >
           <Icon name="retry" size={16} />
           Reset

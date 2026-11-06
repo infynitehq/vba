@@ -23,6 +23,8 @@ export function PlayerLayout({
         <Button
           className={`${textButton} text-[#eeeae3] hover:bg-[#22201d] hover:text-white`}
           onClick={onLibrary}
+          aria-label="Library"
+          title="Library"
         >
           <Icon name="back" size={16} />
           <span>Library</span>

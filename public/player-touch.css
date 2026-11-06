@@ -4,6 +4,33 @@
   display: none;
 }
 
+#game .pocket-toolbar-reveal {
+  position: absolute;
+  z-index: 20;
+  top: 8px;
+  left: calc(50% - 22px);
+  width: 44px;
+  height: 44px;
+  padding: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: #19171580;
+  color: #aaa59d;
+  cursor: pointer;
+}
+
+#game .pocket-toolbar-reveal[hidden] {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  #game:has(.ejs_virtualGamepad_parent) .pocket-toolbar.pocket-toolbar-idle {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 /* Both input modes occupy the same native movement target and rotate with it. */
 #game .b_dpad[data-movement='joystick'] .ejs_dpad_main {
   display: none;
@@ -347,8 +374,10 @@
 
 @media (orientation: landscape) and (max-height: 600px) {
   #game:has(.ejs_virtualGamepad_parent:not([style*='display: none'])) {
-    --key-size: 52px;
-    --pad-size: 120px;
+    --key-size: 56px;
+    --pad-size: 132px;
+    /* Comfortable thumb clusters expand with the natural game margins. */
+    --landscape-rail: max(156px, calc((100vw - 150dvh) / 2));
   }
 
   #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
@@ -372,7 +401,7 @@
   #game :is(.ejs_virtualGamepad_left, .ejs_virtualGamepad_right) {
     top: 0;
     bottom: auto;
-    width: 125px;
+    width: var(--landscape-rail);
     height: 100%;
     pointer-events: none;
   }
@@ -383,15 +412,15 @@
 
   #game .b_dpad {
     position: absolute;
-    inset: auto auto 20px 0 !important;
-    width: 125px;
-    height: 125px;
+    inset: auto auto max(16px, calc((100dvh - 300px) / 2)) calc(50% - 66px) !important;
+    width: 132px;
+    height: 132px;
     transform: none;
   }
 
   #game .ejs_virtualGamepad_button:is(.b_l, .b_r) {
-    top: 56px !important;
-    left: 4px !important;
+    top: 8px !important;
+    left: max(8px, calc((100vw - 150dvh) / 4 - 36px)) !important;
     width: 72px;
     height: 44px !important;
     border-radius: 12px !important;
@@ -400,28 +429,28 @@
   }
 
   #game .ejs_virtualGamepad_button.b_r {
-    right: 0;
+    right: max(8px, calc((100vw - 150dvh) / 4 - 36px)) !important;
     left: auto !important;
   }
 
   #game .ejs_virtualGamepad_button.b_a {
-    left: 70px !important;
+    left: calc(50% + 8px) !important;
     top: auto !important;
-    bottom: 84px;
+    bottom: max(108px, calc((100dvh - 120px) / 2));
   }
 
   #game .ejs_virtualGamepad_button.b_b {
-    left: 8px !important;
+    left: calc(50% - 64px) !important;
     top: auto !important;
-    bottom: 40px;
+    bottom: max(68px, calc((100dvh - 200px) / 2));
   }
 
   #game .ejs_virtualGamepad_bottom {
-    inset: 56px auto auto 50%;
-    width: 128px;
+    inset: auto calc(var(--landscape-rail) / 2 - 68px) 8px auto;
+    width: 136px;
     height: 44px;
     margin: 0;
-    transform: translateX(-50%);
+    transform: none;
     pointer-events: none;
   }
 
@@ -430,15 +459,17 @@
   }
 
   #game .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button {
-    width: 56px;
+    width: 64px;
     z-index: 1;
     height: 44px !important;
+    padding: 8px 0 !important;
     border-radius: 8px !important;
+    background-clip: content-box !important;
     background: #ffffff04;
-    box-shadow: none;
+    box-shadow: none !important;
     color: #aaa59d;
     font-size: 9px !important;
-    line-height: 44px !important;
+    line-height: 28px !important;
     pointer-events: auto;
   }
 
@@ -454,28 +485,90 @@
   }
 
   #game .ejs_virtualGamepad_button.b_start {
-    left: 64px !important;
+    left: auto !important;
+    right: 0;
   }
 
   #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
     .pocket-toolbar {
-    inset: auto auto 8px 50%;
-    height: 48px;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
     padding: 0;
-    border: 1px solid #ffffff12;
-    border-radius: 999px;
-    background: #14131080;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
     opacity: 1;
     visibility: visible;
+    pointer-events: none;
+    transform: none;
+  }
+
+  #game .ejs_virtualGamepad_left {
+    left: 0;
+  }
+  #game .ejs_virtualGamepad_right {
+    right: 0;
+  }
+
+  /* Utilities join the navigation/shoulder clusters, not the middle of the game. */
+  #game .pocket-toolbar button {
     pointer-events: auto;
-    transform: translateX(-50%);
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    :is([aria-label='Pause'], [aria-label='Resume']) {
+    position: absolute;
+    inset: 8px auto auto calc(50% - 118px);
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    .ejs_volume_parent {
+    position: absolute;
+    inset: 8px auto auto calc(50% - 70px);
+    width: 44px;
+    height: 44px;
+    flex: none;
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    .pocket-speed {
+    position: absolute;
+    inset: 8px auto auto calc(50% + 26px);
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    .pocket-icon-button {
+    position: absolute;
+    inset: 8px auto auto calc(50% - 22px);
+  }
+
+  /* Square movement surface with full-size directional targets. */
+  #game .ejs_dpad_horizontal {
+    height: 44px;
+  }
+  #game .ejs_dpad_vertical {
+    width: 44px;
+  }
+  #game .ejs_dpad_horizontal::before,
+  #game .ejs_dpad_horizontal::after {
+    width: 44px;
+  }
+  #game .ejs_dpad_vertical::before,
+  #game .ejs_dpad_vertical::after {
+    height: 44px;
   }
 
   /* Landscape controls float over the video instead of reserving screen space.
      No backdrop blur on game buttons: keep the live game sharp underneath. */
   #game .ejs_virtualGamepad_parent .ejs_virtualGamepad_button {
-    border: 1px solid #ffffff20 !important;
-    background: #17161366;
+    border: 0 !important;
+    background: #302d28b3;
     color: #eeeae3d9;
     box-shadow: inset 0 1px 0 #ffffff08;
     text-shadow: 0 1px 3px #0008;
@@ -495,8 +588,8 @@
 
   #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical)::before,
   #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical)::after {
-    border: 1px solid #ffffff20;
-    background: #17161366;
+    border: 0;
+    background: #302d28b3;
     color: #eeeae3d9;
     box-shadow: inset 0 1px 0 #ffffff08;
     text-shadow: 0 1px 3px #0008;
@@ -512,6 +605,9 @@
   }
 
   #game .b_dpad[data-movement='joystick'] .pocket-stick {
+    inset: 0;
+    width: 132px;
+    height: 132px;
     border-color: #ffffff20;
     background: #17161333;
     box-shadow: inset 0 1px 0 #ffffff08;

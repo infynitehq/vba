@@ -64,12 +64,12 @@ test('touch controls fit the handheld in portrait and landscape and keep native 
     const r = (await player.locator('.b_r').boundingBox())!;
     const select = (await player.locator('.b_select').boundingBox())!;
     const start = (await player.locator('.b_start').boundingBox())!;
-    expect(select.y).toBe(l.y);
-    expect(start.y).toBe(r.y);
-    expect(l.x + l.width).toBeLessThanOrEqual(select.x);
-    expect(select.x + select.width).toBeLessThanOrEqual(start.x);
-    expect(start.x + start.width).toBeLessThanOrEqual(r.x);
     if (height > width) {
+      expect(select.y).toBe(l.y);
+      expect(start.y).toBe(r.y);
+      expect(l.x + l.width).toBeLessThanOrEqual(select.x);
+      expect(select.x + select.width).toBeLessThanOrEqual(start.x);
+      expect(start.x + start.width).toBeLessThanOrEqual(r.x);
       await expect(bar).toBeVisible();
       const screen = (await canvas.boundingBox())!;
       const utilities = (await bar.boundingBox())!;
@@ -133,6 +133,69 @@ test('touch controls fit the handheld in portrait and landscape and keep native 
           );
         }),
       ).toBe(true);
+      const margin = Math.max(0, (width - height * 1.5) / 2);
+      const rail = Math.max(156, margin);
+      const overlayTargets = [
+        ...targets,
+        '.pocket-toolbar [aria-label="Pause"]',
+        '.pocket-toolbar [aria-label="Mute"]',
+        '.pocket-speed',
+        '.pocket-toolbar .pocket-icon-button',
+      ];
+      const boxes = await Promise.all(
+        overlayTargets.map((selector) =>
+          player.locator(selector).boundingBox(),
+        ),
+      );
+      for (const name of ['Library', 'Cheats']) {
+        overlayTargets.push(`Header ${name}`);
+        boxes.push(
+          await page.getByRole('button', { name, exact: true }).boundingBox(),
+        );
+      }
+      boxes.forEach((box, index) => {
+        const bounds = box!;
+        if (['.b_select', '.b_start'].includes(overlayTargets[index])) {
+          expect(bounds.y).toBe(height - 52);
+          return;
+        }
+        if (index >= targets.length) {
+          expect(bounds.y).toBe(8);
+          expect(bounds.x).toBeGreaterThanOrEqual(l.x + l.width);
+          expect(bounds.x + bounds.width).toBeLessThanOrEqual(r.x);
+          return;
+        }
+        // Primary controls stay along the side edges.
+        const edge = rail;
+        expect(
+          bounds.x + bounds.width <= edge + 1 || bounds.x >= width - edge - 1,
+          overlayTargets[index],
+        ).toBe(true);
+      });
+      expect(l.y).toBe(8);
+      expect(r.y).toBe(8);
+      expect(l.x).toBeCloseTo(Math.max(8, margin / 2 - 36));
+      expect(r.x + r.width).toBeCloseTo(width - l.x);
+      const moreBounds = (await player
+        .locator('.pocket-toolbar .pocket-icon-button')
+        .boundingBox())!;
+      expect(moreBounds.x + moreBounds.width / 2).toBe(width / 2);
+      expect((select.x + start.x + start.width) / 2).toBe(width - rail / 2);
+      for (let a = 0; a < boxes.length; a++) {
+        for (let b = a + 1; b < boxes.length; b++) {
+          const first = boxes[a]!;
+          const second = boxes[b]!;
+          const overlap =
+            first.x < second.x + second.width &&
+            second.x < first.x + first.width &&
+            first.y < second.y + second.height &&
+            second.y < first.y + first.height;
+          expect(
+            overlap,
+            `${overlayTargets[a]} overlaps ${overlayTargets[b]}`,
+          ).toBe(false);
+        }
+      }
       await page.screenshot({
         path: `test-results/handheld-landscape-${width}.png`,
       });

@@ -18,6 +18,12 @@
     stick.append(thumb);
     pad.append(stick);
     let mode = 'dpad';
+    const preferenceKey = 'pocket-movement-controls';
+    try {
+      if (localStorage.getItem(preferenceKey) === 'joystick') mode = 'joystick';
+    } catch {
+      // Controls still work when browser storage is unavailable.
+    }
     let pointer = null;
     let held = [0, 0, 0, 0];
     const keys = new Set();
@@ -145,6 +151,11 @@
       button.onclick = () => {
         release();
         mode = value;
+        try {
+          localStorage.setItem(preferenceKey, mode);
+        } catch {
+          // Keep the selected mode for this session if storage is blocked.
+        }
         pad.dataset.movement = mode;
         for (const choice of choices.children)
           choice.setAttribute('aria-pressed', String(choice === button));

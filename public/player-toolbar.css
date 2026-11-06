@@ -1,4 +1,31 @@
 /* Scoped overrides for the pinned emulator UI; no remote icon/font assets. */
+.pocket-rotate-prompt {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  #game .pocket-more-touch .pocket-rotate-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    color: #d9d4cc;
+    text-align: center;
+  }
+
+  #game .pocket-rotate-prompt p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  #game .pocket-more-touch .pocket-more-actions,
+  #game .pocket-more-touch .pocket-volume {
+    display: none;
+  }
+}
+
 #game .pocket-toolbar .pocket-speed {
   display: none;
 }
