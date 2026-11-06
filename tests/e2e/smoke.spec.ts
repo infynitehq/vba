@@ -191,6 +191,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
     )
     .toBeGreaterThan(frameBeforeSpeedChange);
   // Releasing Space must preserve a permanent fast-forward menu preference.
+  await page.waitForTimeout(350); // Keep independent holds outside the double-tap window.
   await emulatorFrame.evaluate(() => {
     window.EJS_emulator.changeSettingOption('ff-ratio', '2.0');
     window.EJS_emulator.changeSettingOption('fastForward', 'enabled');
@@ -208,6 +209,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   );
   await expect.poll(speed).toBe(false);
   // Losing focus releases the hold even if the browser loses the keyup.
+  await page.waitForTimeout(350);
   await page.keyboard.down('Space');
   await expect.poll(speed).toBe(true);
   await page.locator('main').evaluate((element) => {

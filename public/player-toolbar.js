@@ -301,7 +301,10 @@
     bar.append(button);
   }
 
-  function install(emulator, { onOpen, onExit, onSpeedError }) {
+  function install(
+    emulator,
+    { onOpen, onExit, onSpeedError, autoSaveOnExit = true, onAutoSaveChange },
+  ) {
     const bar = emulator.elements.menu;
     if (bar.classList.contains('pocket-toolbar')) return;
     styleControls(emulator);
@@ -386,6 +389,31 @@
         }
       }
       if (grid.childElementCount) actions.appendChild(group);
+    }
+    if (onAutoSaveChange) {
+      const label = document.createElement('label');
+      label.className = 'pocket-autosave';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = autoSaveOnExit;
+      const caption = document.createElement('span');
+      caption.innerHTML =
+        '<strong>Save checkpoint on exit</strong><small>Preserves your exact position separately from manual states. Existing in-game saves are also kept; this does not select Save inside the game.</small>';
+      checkbox.onchange = async () => {
+        const enabled = checkbox.checked;
+        checkbox.disabled = true;
+        try {
+          await onAutoSaveChange(enabled);
+          autoSaveOnExit = enabled;
+        } catch {
+          checkbox.checked = autoSaveOnExit;
+          emulator.displayMessage('The checkpoint setting could not be saved.');
+        } finally {
+          checkbox.disabled = false;
+        }
+      };
+      label.append(checkbox, caption);
+      actions.appendChild(label);
     }
     const slider = bar.querySelector('input[data-range="volume"]');
     let updateVolume = () => {};
@@ -476,7 +504,7 @@
     exitPrompt.setAttribute('aria-labelledby', 'pocket-exit-title');
     exitPrompt.setAttribute('aria-describedby', 'pocket-exit-description');
     exitPrompt.innerHTML =
-      '<span class="pocket-confirm-logo" aria-hidden="true"></span><h2 id="pocket-exit-title">Exit game?</h2><p id="pocket-exit-description">Any unsaved progress will be lost. Return to your library?</p><div class="pocket-confirm-actions"><button type="button" data-exit-cancel autofocus>Cancel</button><button type="button" data-exit-confirm>Exit game</button></div>';
+      '<span class="pocket-confirm-logo" aria-hidden="true"></span><h2 id="pocket-exit-title">Exit game?</h2><p id="pocket-exit-description"></p><div class="pocket-confirm-actions"><button type="button" data-exit-cancel autofocus>Cancel</button><button type="button" data-exit-confirm>Exit game</button></div>';
     exitPrompt.querySelector('[data-exit-cancel]').onclick = () =>
       exitPrompt.close();
     exitPrompt.querySelector('[data-exit-confirm]').onclick = () => {
@@ -516,6 +544,10 @@
         if (target.dataset.pocketAction === 'exit') {
           event.preventDefault();
           event.stopImmediatePropagation();
+          exitPrompt.querySelector('#pocket-exit-description').textContent =
+            onAutoSaveChange && autoSaveOnExit
+              ? 'An automatic checkpoint and existing in-game save data will be saved before returning to your library.'
+              : 'Only existing in-game save data will be saved. Progress since your last in-game save may be lost.';
           exitPrompt.showModal();
           return;
         }

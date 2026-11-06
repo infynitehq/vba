@@ -19,7 +19,9 @@ export async function clearAllData() {
       .filter(
         (db) =>
           db.name &&
-          (/^EmulatorJS/i.test(db.name) || db.name === '/data/saves'),
+          (/^EmulatorJS/i.test(db.name) ||
+            db.name === '/data/saves' ||
+            db.name === 'pocket-gba-checkpoints'),
       )
       .map(
         (db) =>

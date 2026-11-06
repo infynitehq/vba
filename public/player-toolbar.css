@@ -365,6 +365,35 @@
   outline-offset: 2px;
 }
 
+#game .pocket-autosave {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  cursor: pointer;
+}
+#game .pocket-autosave input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: #d64024;
+}
+#game .pocket-autosave strong,
+#game .pocket-autosave small {
+  display: block;
+}
+#game .pocket-autosave strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+#game .pocket-autosave small {
+  margin-top: 6px;
+  color: #a9a39b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 #game .pocket-confirm {
   position: fixed;
   inset: 0;
@@ -431,7 +460,8 @@
   cursor: pointer;
 }
 #game .pocket-confirm-actions [data-restart-confirm],
-#game .pocket-confirm-actions [data-exit-confirm] {
+#game .pocket-confirm-actions [data-exit-confirm],
+#game .pocket-confirm-actions [data-checkpoint-resume] {
   border-color: #f5b85a55;
   background: #f5b85a0d;
   color: #f8dda1;

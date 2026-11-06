@@ -268,7 +268,9 @@ function Player() {
         <DialogContent backdropClassName="bg-black/45 backdrop-blur-sm">
           <DialogTitle>Exit game?</DialogTitle>
           <DialogDescription>
-            Any unsaved progress will be lost. Return to your library?
+            Your automatic checkpoint and existing in-game save data will be
+            saved before exiting. If checkpoints are turned off in More options,
+            only existing in-game save data is saved.
           </DialogDescription>
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Button variant="outline" onClick={() => setConfirmExit(false)}>

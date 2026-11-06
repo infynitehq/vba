@@ -55,6 +55,7 @@ export default defineConfig(({ command }) => ({
         'icons/source.svg',
         'player.html',
         'player.js',
+        'player-checkpoints.js',
         'player-toolbar.js',
         'player-toolbar.css',
         'player-controls.css',

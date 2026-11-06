@@ -14,6 +14,7 @@ export interface Game {
   addedAt: number;
   lastPlayedAt: number | null;
   lastSavedAt?: number | null;
+  autoSaveOnExit?: boolean;
 }
 interface PocketDB extends DBSchema {
   games: { key: string; value: Game; indexes: { hash: string } };

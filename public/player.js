@@ -15,6 +15,13 @@
   let saveTask = Promise.resolve();
   let launchedCheats;
   let previousSave;
+  let autoSaveOnExit = true;
+  let checkpointPending = false;
+  let checkpointReadable = true;
+  let checkpointReady = Promise.resolve();
+  let flushTask = Promise.resolve();
+  let exitTask;
+  let exiting = false;
   const message = document.getElementById('message');
   const report = (error) => {
     message.hidden = false;
@@ -43,6 +50,43 @@
     });
   let keyboardHeld = false,
     appHeld = false;
+  const doubleTapMs = 300;
+  let pressedAt = null,
+    lastTapAt = null;
+  function updateSpeedHold(source, held) {
+    const previous = source === 'keyboard' ? keyboardHeld : appHeld;
+    if (previous === held) return;
+    if (source === 'keyboard') keyboardHeld = held;
+    else appHeld = held;
+    const now = performance.now();
+    if (held) {
+      pressedAt = now;
+    } else if (pressedAt !== null) {
+      const tapped = now - pressedAt <= doubleTapMs;
+      pressedAt = null;
+      if (tapped && lastTapAt !== null && now - lastTapAt <= doubleTapMs) {
+        lastTapAt = null;
+        const emulator = window.EJS_emulator;
+        try {
+          const enabled = emulator.getSettingValue('fastForward') === 'enabled';
+          emulator.changeSettingOption('slowMotion', 'disabled');
+          if (!enabled) emulator.changeSettingOption('ff-ratio', '3.0');
+          emulator.changeSettingOption(
+            'fastForward',
+            enabled ? 'disabled' : 'enabled',
+          );
+        } catch {
+          send('speed-error', {
+            message:
+              'Fast forward could not be changed. Your game is still running. Try again.',
+          });
+        }
+      } else {
+        lastTapAt = tapped ? now : null;
+      }
+    }
+    refreshSpeed();
+  }
   function refreshSpeed() {
     if (!started) return;
     const emulator = window.EJS_emulator;
@@ -72,6 +116,8 @@
   function releaseSpeed() {
     keyboardHeld = false;
     appHeld = false;
+    pressedAt = null;
+    lastTapAt = null;
     refreshSpeed();
   }
   window.addEventListener(
@@ -103,8 +149,7 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       if (!event.repeat && !keyboardHeld) {
-        keyboardHeld = true;
-        refreshSpeed();
+        updateSpeedHold('keyboard', true);
       }
     },
     true,
@@ -115,8 +160,7 @@
       if (event.code === 'Space' && keyboardHeld) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        keyboardHeld = false;
-        refreshSpeed();
+        updateSpeedHold('keyboard', false);
       }
     },
     true,
@@ -184,21 +228,130 @@
         // Preserve the previous timestamp on failure; retry on the next save.
       });
   }
-  async function flush() {
+  function flush({ checkpoint = false } = {}) {
+    if (!started || exiting) return flushTask;
+    const manager = window.EJS_emulator.gameManager;
+    let state;
+    let captureError;
+    // Capture synchronously: pagehide/visibilitychange cannot wait for a queue.
     try {
-      if (started) {
-        const manager = window.EJS_emulator.gameManager;
-        manager.saveSaveFiles();
-        await saveTask;
-        await new Promise((resolve, reject) =>
-          manager.FS.syncfs(false, (error) =>
-            error ? reject(error) : resolve(),
-          ),
-        );
+      manager.saveSaveFiles();
+    } catch (error) {
+      captureError = error;
+    }
+    if (checkpoint) {
+      try {
+        if (!checkpointReadable)
+          throw new Error('The previous checkpoint could not be loaded.');
+        if (!window.PocketCheckpoints)
+          throw new Error('Checkpoint support did not load. Reload the app.');
+        state = new Uint8Array(manager.getState());
+        if (!state.byteLength) throw new Error('The checkpoint is empty.');
+      } catch (error) {
+        captureError = error;
+      }
+    }
+    // Queue writes so an earlier background save cannot replace an exit save.
+    const task = flushTask
+      .catch(() => {})
+      .then(async () => {
+        const battery = (async () => {
+          await saveTask;
+          await new Promise((resolve, reject) =>
+            manager.FS.syncfs(false, (error) =>
+              error ? reject(error) : resolve(),
+            ),
+          );
+        })();
+        // A failed battery flush must not prevent the independent snapshot backup.
+        const results = await Promise.allSettled([
+          battery,
+          state ? window.PocketCheckpoints.save(gameId, state) : undefined,
+        ]);
+        const failure = results.find((result) => result.status === 'rejected');
+        if (captureError) throw captureError;
+        if (failure) throw failure.reason;
+      });
+    flushTask = task;
+    return task;
+  }
+  async function prepareCheckpoint() {
+    if (!autoSaveOnExit || !window.PocketCheckpoints) return;
+    checkpointPending = true;
+    const emulator = window.EJS_emulator;
+    let resumePlayback = false;
+    try {
+      // Don't capture the title screen while a previous checkpoint is offered.
+      const checkpoint = await window.PocketCheckpoints.load(gameId);
+      if (!checkpoint) return;
+      resumePlayback = !emulator.paused;
+      emulator.pause();
+      if (await window.PocketCheckpoints.offerResume(emulator, checkpoint)) {
+        emulator.gameManager.loadState(checkpoint.state);
+        emulator.displayMessage('Automatic checkpoint loaded');
       }
     } catch {
-      /* Browser teardown is best-effort. */
+      checkpointReadable = false;
+      send('error', {
+        message:
+          'Your automatic checkpoint could not be loaded. It has been kept unchanged. Turn off Save checkpoint on exit to play without replacing it.',
+      });
+    } finally {
+      checkpointPending = false;
+      if (resumePlayback) emulator.play();
     }
+  }
+  function exitGame() {
+    if (exitTask) return exitTask;
+    exitTask = (async () => {
+      releaseSpeed();
+      await checkpointReady;
+      const emulator = window.EJS_emulator;
+      const resumePlayback = started && !emulator.paused;
+      if (started) emulator.pause();
+      message.hidden = false;
+      message.textContent = 'Saving before exit…';
+      try {
+        await flush({ checkpoint: autoSaveOnExit });
+        exiting = true;
+        send('request-exit');
+      } catch {
+        message.hidden = true;
+        send('error', {
+          message:
+            'Progress could not be saved. Your game is still open. Free browser storage or back up your saves, then try exiting again.',
+        });
+        if (resumePlayback) emulator.play();
+      } finally {
+        exitTask = undefined;
+      }
+    })();
+    return exitTask;
+  }
+  function saveInBackground() {
+    releaseSpeed();
+    if (checkpointPending || exiting) return flushTask.catch(() => {});
+    return flush({ checkpoint: autoSaveOnExit }).catch(() => {
+      send('error', {
+        message:
+          'The background save failed. Keep this game open and back up your progress before closing the app.',
+      });
+    });
+  }
+  async function changeAutoSave(enabled) {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('games', 'readwrite');
+      tx.oncomplete = resolve;
+      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error);
+      const store = tx.objectStore('games');
+      const req = store.get(gameId);
+      req.onsuccess = () => {
+        if (req.result) store.put({ ...req.result, autoSaveOnExit: enabled });
+        else tx.abort();
+      };
+    });
+    autoSaveOnExit = enabled;
   }
   window.addEventListener('message', async (event) => {
     if (
@@ -214,26 +367,21 @@
       event.data.type === 'fast-forward-held' &&
       typeof event.data.held === 'boolean'
     ) {
-      appHeld = event.data.held;
-      refreshSpeed();
+      updateSpeedHold('app', event.data.held);
     }
     if (event.data.type === 'exit') {
-      releaseSpeed();
-      await flush();
-      send('request-exit');
+      await exitGame();
     }
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      releaseSpeed();
-      flush();
+      void saveInBackground();
     }
   });
   window.addEventListener('pagehide', () => {
-    releaseSpeed();
-    flush();
+    // Keep the app database open until pending save timestamps are committed.
+    void saveInBackground().finally(() => db?.close());
     if (gameUrl) URL.revokeObjectURL(gameUrl);
-    db?.close();
   });
   window.addEventListener('error', (event) =>
     report(
@@ -264,6 +412,7 @@
       db.transaction('games').objectStore('games').get(gameId),
     );
     if (!game) throw new Error('This game is not in your library.');
+    autoSaveOnExit = game.autoSaveOnExit !== false;
     pendingCheats = await request(
       db
         .transaction('cheats')
@@ -302,10 +451,7 @@
         exitEmulation: {
           ...window.PocketToolbar.options.exitEmulation,
           visible: true,
-          callback: async () => {
-            await flush();
-            send('request-exit');
-          },
+          callback: exitGame,
         },
       },
       // The native UI submits every configured code before onGameStart, even
@@ -386,11 +532,9 @@
             send('speed-error', {
               message: 'Game speed could not be changed. Try again.',
             }),
-          onExit: async () => {
-            releaseSpeed();
-            await flush();
-            send('request-exit');
-          },
+          onExit: exitGame,
+          autoSaveOnExit,
+          onAutoSaveChange: changeAutoSave,
         });
         const changeSetting = emulator.changeSettingOption.bind(emulator);
         emulator.changeSettingOption = (...args) => {
@@ -404,6 +548,7 @@
           return result;
         };
         applyCheats(pendingCheats);
+        checkpointReady = prepareCheckpoint();
         send('ready');
       },
       EJS_onSaveSave: ({ save }) => {
