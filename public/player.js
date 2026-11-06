@@ -49,8 +49,14 @@
       keyboardHeld ||
       appHeld ||
       emulator.getSettingValue('fastForward') === 'enabled';
-    if (Boolean(emulator.isFastForward) === enabled) return;
     try {
+      const slow =
+        !enabled && emulator.getSettingValue('slowMotion') === 'enabled';
+      if (Boolean(emulator.isSlowMotion) !== slow) {
+        emulator.gameManager.toggleSlowMotion(slow ? 1 : 0);
+        emulator.isSlowMotion = slow;
+      }
+      if (Boolean(emulator.isFastForward) === enabled) return;
       // Temporarily change the native speed without changing the user's menu
       // preference. Release restores whichever mode that menu currently selects.
       emulator.gameManager.toggleFastForward(enabled ? 1 : 0);
@@ -312,10 +318,34 @@
           },
         },
       },
-      EJS_cheats: pendingCheats.map((cheat) => [cheat.label, cheat.code]),
+      // The native UI submits every configured code before onGameStart, even
+      // unchecked ones. mGBA ignores that enabled flag, so a disabled bad code
+      // can crash startup before our enabled-only reconciliation runs.
+      // Pocket owns cheats; submit them only through applyCheats after startup.
+      EJS_cheats: [],
       EJS_ready: () => {
         message.hidden = true;
         const emulator = window.EJS_emulator;
+        // A tap on the library belongs to the parent document, not this frame.
+        // On iOS, create the core's audio context during a real player gesture,
+        // after downloads finish, rather than auto-starting with blocked audio.
+        if (emulator.isSafari && emulator.isMobile) {
+          const startGame = emulator.startGame.bind(emulator);
+          emulator.startGame = () => {
+            const gate = document.getElementById('start-gate');
+            const button = document.getElementById('start-game');
+            gate.hidden = false;
+            button.addEventListener(
+              'click',
+              () => {
+                gate.hidden = true;
+                emulator.startGame = startGame;
+                startGame();
+              },
+              { once: true },
+            );
+          };
+        }
         const original = emulator.startGameError.bind(emulator);
         emulator.startGameError = (text) => {
           report(new Error(text));
@@ -362,6 +392,10 @@
         });
         window.PocketToolbar.install(emulator, {
           onOpen: releaseSpeed,
+          onSpeedError: () =>
+            send('speed-error', {
+              message: 'Game speed could not be changed. Try again.',
+            }),
           onExit: async () => {
             releaseSpeed();
             await flush();
@@ -371,7 +405,11 @@
         const changeSetting = emulator.changeSettingOption.bind(emulator);
         emulator.changeSettingOption = (...args) => {
           const result = changeSetting(...args);
-          if (args[0] === 'fastForward' || args[0] === 'ff-ratio')
+          if (
+            ['fastForward', 'ff-ratio', 'slowMotion', 'sm-ratio'].includes(
+              args[0],
+            )
+          )
             refreshSpeed();
           return result;
         };

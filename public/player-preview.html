@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>Mobile controls preview</title>
+    <link rel="stylesheet" href="./fonts.css" />
+    <link rel="stylesheet" href="./emulatorjs/emulator.min.css" />
+    <link rel="stylesheet" href="./player-toolbar.css" />
+    <link rel="stylesheet" href="./player-controls.css" />
+    <link rel="stylesheet" href="./player-touch.css" />
+    <style>
+      html,
+      body,
+      #game {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #191715;
+        color: #eeeae3;
+        font-family: 'Ioskeley Mono', monospace;
+        -webkit-font-smoothing: antialiased;
+      }
+      .preview-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 20px;
+        gap: 12px;
+        text-align: center;
+        background: radial-gradient(ellipse at center, #292820, #161613);
+      }
+      .preview-placeholder img {
+        width: 32px;
+        height: 32px;
+        opacity: 0.55;
+      }
+      .preview-placeholder h1 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 400;
+      }
+      .preview-placeholder p {
+        margin: 0;
+        max-width: 30ch;
+        color: #aaa59d;
+        font-size: 10px;
+        line-height: 1.6;
+      }
+      #preview-input {
+        min-height: 16px;
+        color: #e9bb78;
+      }
+      #game .pocket-toolbar {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+      @media (orientation: landscape) and (max-height: 600px) {
+        .preview-placeholder {
+          padding: 104px 150px 64px;
+          gap: 8px;
+        }
+        .preview-placeholder img {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game" class="ejs_parent" tabindex="-1">
+      <div class="ejs_canvas_parent">
+        <div class="preview-placeholder">
+          <img src="./logo.svg" alt="" />
+          <h1>Game screen</h1>
+          <p>
+            No game needed. Try the controls, change speed, or rotate your
+            phone.
+          </p>
+          <p id="preview-input" role="status">Ready to test</p>
+        </div>
+      </div>
+    </div>
+    <script src="./emulatorjs/emulator.min.js"></script>
+    <script src="./player-input.js"></script>
+    <script src="./player-toolbar.js"></script>
+    <script src="./mobile-layout.js"></script>
+  </body>
+</html>

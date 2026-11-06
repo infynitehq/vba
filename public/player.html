@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="./player-toolbar.css" />
     <link rel="stylesheet" href="./player-controls.css" />
     <link rel="stylesheet" href="./player-settings.css" />
+    <link rel="stylesheet" href="./player-touch.css" />
     <style>
       html,
       body,
@@ -33,6 +34,29 @@
         inset: 45% 24px auto;
         text-align: center;
       }
+      #start-gate {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 24px;
+        background: #191715;
+        text-align: center;
+      }
+      #start-gate[hidden] {
+        display: none;
+      }
+      #start-gate p {
+        max-width: 28ch;
+        margin: 0;
+        color: #a9a39b;
+        font-size: 14px;
+        line-height: 1.6;
+      }
       button {
         font: inherit;
         min-height: 44px;
@@ -47,6 +71,11 @@
   <body>
     <div id="game"></div>
     <div id="message" role="status">Opening your game…</div>
+    <div id="start-gate" hidden>
+      <button id="start-game" type="button">Tap to play</button>
+      <p>Your game is ready. Tap to start with sound.</p>
+    </div>
+    <script src="./player-input.js"></script>
     <script src="./player-toolbar.js"></script>
     <script src="./player-settings.js"></script>
     <script src="./player.js"></script>

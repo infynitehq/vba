@@ -228,11 +228,85 @@
     }).observe(dialog, { attributes: true, attributeFilter: ['style'] });
   }
 
-  function install(emulator, { onOpen, onExit }) {
+  function installSpeed(emulator, bar, { onOpen, onSpeedError }) {
+    if (!emulator.getSettingValue || !emulator.changeSettingOption) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'pocket-speed';
+    const currentMode = () =>
+      emulator.getSettingValue('fastForward') === 'enabled'
+        ? 'fast'
+        : emulator.getSettingValue('slowMotion') === 'enabled'
+          ? 'slow'
+          : 'normal';
+    const update = () => {
+      const mode = currentMode();
+      const ratio =
+        mode === 'fast'
+          ? emulator.getSettingValue('ff-ratio')
+          : mode === 'slow'
+            ? 1 / Number(emulator.getSettingValue('sm-ratio'))
+            : 1;
+      const label =
+        ratio === 'unlimited' ? '∞' : `${Number(Number(ratio).toFixed(2))}×`;
+      const next = mode === 'normal' ? '3×' : mode === 'fast' ? '0.5×' : '1×';
+      button.textContent = label;
+      button.dataset.speed = mode;
+      button.setAttribute('aria-label', `Game speed: ${label}`);
+      button.setAttribute(
+        'aria-description',
+        `Activate to switch to ${next} speed.`,
+      );
+      button.title = `${label} speed. Switch to ${next}`;
+    };
+    button.onclick = () => {
+      const mode = currentMode();
+      onOpen(); // Release temporary keyboard holds before changing the mode.
+      try {
+        // Disable the old mode before setting ratios, avoiding delayed native
+        // ratio updates re-enabling an obsolete mode after the next tap.
+        emulator.changeSettingOption('fastForward', 'disabled');
+        emulator.changeSettingOption('slowMotion', 'disabled');
+        if (mode === 'normal') {
+          emulator.changeSettingOption('ff-ratio', '3.0');
+          emulator.changeSettingOption('fastForward', 'enabled');
+        } else if (mode === 'fast') {
+          emulator.changeSettingOption('sm-ratio', '2.0');
+          emulator.changeSettingOption('slowMotion', 'enabled');
+        }
+      } catch {
+        onSpeedError?.();
+      }
+      update();
+    };
+    const changeSetting = emulator.changeSettingOption.bind(emulator);
+    emulator.changeSettingOption = (...args) => {
+      const result = changeSetting(...args);
+      if (
+        ['fastForward', 'slowMotion', 'ff-ratio', 'sm-ratio'].includes(args[0])
+      )
+        update();
+      return result;
+    };
+    for (const type of [
+      'keydown',
+      'keyup',
+      'pointerdown',
+      'mousedown',
+      'touchstart',
+      'click',
+    ])
+      button.addEventListener(type, (event) => event.stopPropagation());
+    update();
+    bar.append(button);
+  }
+
+  function install(emulator, { onOpen, onExit, onSpeedError }) {
     const bar = emulator.elements.menu;
     if (bar.classList.contains('pocket-toolbar')) return;
     styleControls(emulator);
     window.PocketSettings?.install(emulator);
+    const touchInput = window.PocketInput?.install(emulator);
     bar.classList.add('pocket-toolbar');
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', 'Game controls');
@@ -271,6 +345,7 @@
     const actions = document.createElement('div');
     actions.className = 'pocket-more-actions';
     dialog.appendChild(actions);
+    if (touchInput) actions.append(touchInput.settings);
 
     // Move the real buttons, not copies: native save/state/control behavior,
     // visibility changes and callbacks remain intact (including user gestures).
@@ -338,6 +413,7 @@
     more.setAttribute('aria-expanded', 'false');
     more.innerHTML = icon('more');
     more.onclick = () => {
+      touchInput?.release();
       onOpen();
       updateVolume();
       dialog.showModal();
@@ -567,6 +643,7 @@
       touchMenu.replaceWith(toggle);
       emulator.elements.menuToggle = toggle;
     }
+    installSpeed(emulator, bar, { onOpen, onSpeedError });
     bar.appendChild(more);
     emulator.elements.parent.appendChild(dialog);
   }

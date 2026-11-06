@@ -1,0 +1,70 @@
+.player-title {
+  flex: 1;
+}
+
+.player-eyebrow {
+  display: none;
+}
+
+/* A phone-width preview on desktop; real phones keep their actual viewport. */
+@media (pointer: fine) and (min-width: 901px) and (min-height: 601px) {
+  .mobile-layout-frame {
+    align-self: center;
+    max-width: 430px;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 900px) {
+  .player-header {
+    min-height: 56px;
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .player-header > button {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+
+  .player-title > span:last-child {
+    color: #eeeae3;
+    font-size: 11px;
+  }
+
+  .player-eyebrow {
+    display: block;
+    margin-bottom: 3px;
+    color: #a9a39b;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+  .player-header {
+    position: absolute;
+    inset: env(safe-area-inset-top) env(safe-area-inset-right) auto
+      env(safe-area-inset-left);
+    z-index: 2;
+    min-height: 44px;
+    pointer-events: none;
+    background: linear-gradient(#0007, transparent);
+  }
+
+  .player-header > button {
+    pointer-events: auto;
+    text-shadow: 0 1px 3px #0008;
+  }
+
+  .player-title {
+    opacity: 0.7;
+    text-shadow: 0 1px 3px #0008;
+  }
+
+  .player-eyebrow {
+    display: none;
+  }
+}

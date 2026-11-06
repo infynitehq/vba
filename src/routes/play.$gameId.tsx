@@ -10,6 +10,7 @@ import { Icon } from '../components/Icon';
 import { useToast } from '../components/Toast';
 import { textButton } from '../components/ui';
 import { Button } from '../components/ui/button';
+import { PlayerLayout } from '../components/PlayerLayout';
 import {
   Dialog,
   DialogContent,
@@ -225,18 +226,10 @@ function Player() {
   url.searchParams.set('gameId', gameId);
   url.searchParams.set('channel', channel);
   return (
-    <main className="fixed inset-0 flex flex-col bg-[#191715] pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] text-[#eeeae3]">
-      <div className="flex min-h-16 shrink-0 items-center justify-between gap-1 px-2 sm:gap-3">
-        <Button
-          className={`${textButton} text-[#eeeae3] hover:bg-[#22201d] hover:text-white`}
-          onClick={() => setConfirmExit(true)}
-        >
-          <Icon name="back" size={16} />
-          <span>Library</span>
-        </Button>
-        <span className="hidden min-w-0 truncate text-xs text-[#a9a39b] sm:block">
-          {game.name}
-        </span>
+    <PlayerLayout
+      title={game.name}
+      onLibrary={() => setConfirmExit(true)}
+      action={
         <Button
           className={`${textButton} text-[#eeeae3] hover:bg-[#22201d] hover:text-white`}
           onClick={() => setShowCheats(true)}
@@ -244,7 +237,8 @@ function Player() {
           <Icon name="cheats" size={16} />
           Cheats
         </Button>
-      </div>
+      }
+    >
       <iframe
         key={gameId}
         ref={iframe}
@@ -278,6 +272,6 @@ function Player() {
           </div>
         </DialogContent>
       </Dialog>
-    </main>
+    </PlayerLayout>
   );
 }

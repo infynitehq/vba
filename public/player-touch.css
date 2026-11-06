@@ -1,0 +1,536 @@
+/* Keep EmulatorJS's touch targets, multi-touch, diagonals and input mappings.
+   Only the handheld presentation changes; desktop and hidden gamepads don't. */
+#game .pocket-stick {
+  display: none;
+}
+
+/* Both input modes occupy the same native movement target and rotate with it. */
+#game .b_dpad[data-movement='joystick'] .ejs_dpad_main {
+  display: none;
+}
+
+#game .b_dpad[data-movement='joystick'] .pocket-stick {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid #ffffff08;
+  border-radius: 50%;
+  background: #151310;
+  box-shadow:
+    inset 0 2px 8px #0004,
+    0 1px 0 #ffffff06;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game .pocket-stick-thumb {
+  position: absolute;
+  inset: 28%;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #34312b, #292622);
+  box-shadow:
+    0 3px 8px #0005,
+    inset 0 1px 0 #ffffff12;
+  transform: translate(var(--stick-x, 0px), var(--stick-y, 0px));
+  transition: transform 120ms ease-out;
+  pointer-events: none;
+}
+
+#game .pocket-stick.is-held .pocket-stick-thumb {
+  transition: none;
+  background: linear-gradient(160deg, #3d362b, #2c2720);
+}
+
+#game .pocket-stick:focus-visible {
+  outline: 2px solid #e9bb78;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #game .pocket-stick-thumb {
+    transition: none;
+  }
+}
+
+@media (pointer: coarse), (max-width: 900px) {
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    [aria-keyshortcuts='f'] {
+    display: none !important;
+  }
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none'])) {
+    --deck-height: clamp(240px, 40dvh, 310px);
+    --pad-size: clamp(132px, 34vw, 148px);
+    --key-size: clamp(56px, 16vw, 68px);
+    --deck-edge: clamp(16px, 5vw, 32px);
+  }
+
+  #game .ejs_virtualGamepad_parent {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #game .ejs_virtualGamepad_button:is(.b_speed_fast, .b_speed_slow) {
+    display: none;
+  }
+
+  #game .ejs_virtualGamepad_button {
+    box-sizing: border-box;
+    width: var(--key-size, 60px);
+    height: var(--key-size, 60px) !important;
+    border: 0 !important;
+    background: linear-gradient(160deg, #302d28, #292622);
+    color: #d9d4cc;
+    box-shadow:
+      0 2px 3px #0004,
+      inset 0 1px 0 #ffffff0c;
+    font-family: 'Ioskeley Mono', monospace;
+    font-size: 20px !important;
+    font-weight: 400 !important;
+    line-height: var(--key-size, 60px) !important;
+    -webkit-tap-highlight-color: transparent;
+    transition: none;
+  }
+
+  #game .ejs_virtualGamepad_button.b_a {
+    color: #e9bb78;
+  }
+
+  #game .ejs_virtualGamepad_button.ejs_virtualGamepad_button_down {
+    transform: translateY(2px);
+    background: #24211e;
+    box-shadow:
+      0 1px 1px #ffffff08,
+      inset 0 2px 5px #0006;
+    color: #e9bb78;
+  }
+
+  #game .b_dpad::before {
+    content: none;
+  }
+
+  #game .ejs_dpad_main {
+    opacity: 1;
+    filter: none;
+  }
+
+  #game .ejs_dpad_main::before,
+  #game .ejs_dpad_main::after {
+    content: none;
+  }
+
+  #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical) {
+    border-radius: 0;
+    overflow: visible;
+    filter: none;
+  }
+
+  #game .ejs_dpad_horizontal {
+    height: 34%;
+  }
+
+  #game .ejs_dpad_vertical {
+    width: 34%;
+  }
+
+  #game .ejs_dpad_bar {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical)::before,
+  #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical)::after {
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #302d28, #292622);
+    box-shadow:
+      0 2px 3px #0004,
+      inset 0 1px 0 #ffffff0c;
+    color: #c1baae;
+    font:
+      18px/1 system-ui,
+      sans-serif;
+    pointer-events: none;
+  }
+
+  #game .ejs_dpad_horizontal::before {
+    content: '←';
+    left: 0;
+    width: 34%;
+    height: 100%;
+    transform: translateY(-50%);
+  }
+
+  #game .ejs_dpad_horizontal::after {
+    content: '→';
+    right: 0;
+    width: 34%;
+    height: 100%;
+    transform: translateY(-50%);
+  }
+
+  #game .ejs_dpad_vertical::before {
+    content: '↑';
+    top: 0;
+    width: 100%;
+    height: 34%;
+    transform: translateX(-50%);
+  }
+
+  #game .ejs_dpad_vertical::after {
+    content: '↓';
+    bottom: 0;
+    width: 100%;
+    height: 34%;
+    transform: translateX(-50%);
+  }
+
+  #game .ejs_dpad_left_pressed .ejs_dpad_horizontal::before,
+  #game .ejs_dpad_right_pressed .ejs_dpad_horizontal::after,
+  #game .ejs_dpad_up_pressed .ejs_dpad_vertical::before,
+  #game .ejs_dpad_down_pressed .ejs_dpad_vertical::after {
+    background: #24211e;
+    color: #e9bb78;
+    box-shadow: inset 0 1px 4px #0005;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .ejs_canvas_parent {
+    position: absolute;
+    inset: 8px 12px auto;
+    width: calc(100% - 24px);
+    height: calc(100% - var(--deck-height) - 72px);
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 6px solid #100f0e;
+    border-radius: 14px;
+    background: #000;
+    box-shadow:
+      0 0 0 1px #ffffff12,
+      0 8px 24px #0003;
+  }
+
+  #game .ejs_virtualGamepad_parent {
+    inset: auto 0 0;
+    height: var(--deck-height);
+    background: none;
+  }
+
+  #game :is(.ejs_virtualGamepad_left, .ejs_virtualGamepad_right) {
+    top: 0;
+    bottom: auto;
+    width: var(--pad-size);
+    height: 100%;
+    pointer-events: none;
+  }
+
+  #game :is(.ejs_virtualGamepad_left, .ejs_virtualGamepad_right) > * {
+    pointer-events: auto;
+  }
+
+  #game .ejs_virtualGamepad_left {
+    left: var(--deck-edge);
+  }
+
+  #game .ejs_virtualGamepad_right {
+    right: var(--deck-edge);
+  }
+
+  #game .b_dpad {
+    position: absolute;
+    inset: 60% auto auto 0 !important;
+    width: var(--pad-size);
+    height: var(--pad-size);
+    transform: translateY(-50%);
+  }
+
+  #game .ejs_virtualGamepad_button:is(.b_l, .b_r) {
+    top: 12px !important;
+    left: 0 !important;
+    width: 72px;
+    height: 44px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    line-height: 44px !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_r {
+    right: 0;
+    left: auto !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_a {
+    top: calc(60% - var(--key-size) + 14px) !important;
+    right: 0;
+    left: auto !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_b {
+    top: calc(60% + 4px) !important;
+    left: 0 !important;
+  }
+
+  #game .ejs_virtualGamepad_bottom {
+    inset: 12px auto auto 50%;
+    width: 128px;
+    height: 44px;
+    margin: 0;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  #game .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button {
+    pointer-events: auto;
+    width: 60px;
+    height: 44px !important;
+    border-radius: 8px !important;
+    background: #ffffff04;
+    box-shadow: none;
+    color: #aaa59d;
+    font-size: 9px !important;
+    line-height: 44px !important;
+  }
+
+  #game .ejs_virtualGamepad_bottom::before {
+    content: none;
+  }
+
+  #game
+    .ejs_virtualGamepad_bottom
+    .ejs_virtualGamepad_button.ejs_virtualGamepad_button_down {
+    background: #ffffff06;
+    color: #e9bb78;
+  }
+
+  #game .ejs_virtualGamepad_button.b_select {
+    inset: 0 auto auto 0 !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_start {
+    inset: 0 0 auto auto !important;
+  }
+
+  /* Utilities have their own strip, never covering the game or thumb controls. */
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar {
+    inset: auto auto calc(var(--deck-height) + 8px) 50%;
+    height: 48px;
+    max-width: calc(100% - 8px);
+    padding: 0;
+    border: 0;
+    flex-wrap: nowrap;
+    transform: translateX(-50%);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 999px;
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .ejs_virtualGamepad_open {
+    display: none !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none'])) {
+    --key-size: 52px;
+    --pad-size: 120px;
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .ejs_canvas_parent {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #game .ejs_virtualGamepad_parent {
+    bottom: 0;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  #game .ejs_virtualGamepad_parent > * {
+    pointer-events: auto;
+  }
+
+  #game :is(.ejs_virtualGamepad_left, .ejs_virtualGamepad_right) {
+    top: 0;
+    bottom: auto;
+    width: 125px;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  #game :is(.ejs_virtualGamepad_left, .ejs_virtualGamepad_right) > * {
+    pointer-events: auto;
+  }
+
+  #game .b_dpad {
+    position: absolute;
+    inset: auto auto 20px 0 !important;
+    width: 125px;
+    height: 125px;
+    transform: none;
+  }
+
+  #game .ejs_virtualGamepad_button:is(.b_l, .b_r) {
+    top: 56px !important;
+    left: 4px !important;
+    width: 72px;
+    height: 44px !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    line-height: 44px !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_r {
+    right: 0;
+    left: auto !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_a {
+    left: 70px !important;
+    top: auto !important;
+    bottom: 84px;
+  }
+
+  #game .ejs_virtualGamepad_button.b_b {
+    left: 8px !important;
+    top: auto !important;
+    bottom: 40px;
+  }
+
+  #game .ejs_virtualGamepad_bottom {
+    inset: 56px auto auto 50%;
+    width: 128px;
+    height: 44px;
+    margin: 0;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  #game .ejs_virtualGamepad_bottom::before {
+    content: none;
+  }
+
+  #game .ejs_virtualGamepad_bottom .ejs_virtualGamepad_button {
+    width: 56px;
+    z-index: 1;
+    height: 44px !important;
+    border-radius: 8px !important;
+    background: #ffffff04;
+    box-shadow: none;
+    color: #aaa59d;
+    font-size: 9px !important;
+    line-height: 44px !important;
+    pointer-events: auto;
+  }
+
+  #game
+    .ejs_virtualGamepad_bottom
+    .ejs_virtualGamepad_button.ejs_virtualGamepad_button_down {
+    background: #ffffff06;
+    color: #e9bb78;
+  }
+
+  #game .ejs_virtualGamepad_button.b_select {
+    left: 0 !important;
+  }
+
+  #game .ejs_virtualGamepad_button.b_start {
+    left: 64px !important;
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar {
+    inset: auto auto 8px 50%;
+    height: 48px;
+    padding: 0;
+    border: 1px solid #ffffff12;
+    border-radius: 999px;
+    background: #14131080;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%);
+  }
+
+  /* Landscape controls float over the video instead of reserving screen space.
+     No backdrop blur on game buttons: keep the live game sharp underneath. */
+  #game .ejs_virtualGamepad_parent .ejs_virtualGamepad_button {
+    border: 1px solid #ffffff20 !important;
+    background: #17161366;
+    color: #eeeae3d9;
+    box-shadow: inset 0 1px 0 #ffffff08;
+    text-shadow: 0 1px 3px #0008;
+  }
+
+  #game .ejs_virtualGamepad_parent .ejs_virtualGamepad_button.b_a {
+    color: #f2c789;
+  }
+
+  #game
+    .ejs_virtualGamepad_parent
+    .ejs_virtualGamepad_button.ejs_virtualGamepad_button_down {
+    background: #3e3328c9;
+    color: #ffd391;
+    border-color: #e9bb7866 !important;
+  }
+
+  #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical)::before,
+  #game :is(.ejs_dpad_horizontal, .ejs_dpad_vertical)::after {
+    border: 1px solid #ffffff20;
+    background: #17161366;
+    color: #eeeae3d9;
+    box-shadow: inset 0 1px 0 #ffffff08;
+    text-shadow: 0 1px 3px #0008;
+  }
+
+  #game .ejs_dpad_left_pressed .ejs_dpad_horizontal::before,
+  #game .ejs_dpad_right_pressed .ejs_dpad_horizontal::after,
+  #game .ejs_dpad_up_pressed .ejs_dpad_vertical::before,
+  #game .ejs_dpad_down_pressed .ejs_dpad_vertical::after {
+    background: #3e3328c9;
+    color: #ffd391;
+    border-color: #e9bb7866;
+  }
+
+  #game .b_dpad[data-movement='joystick'] .pocket-stick {
+    border-color: #ffffff20;
+    background: #17161333;
+    box-shadow: inset 0 1px 0 #ffffff08;
+  }
+
+  #game .pocket-stick-thumb {
+    border: 1px solid #ffffff26;
+    background: #e1dbcb33;
+    box-shadow:
+      0 2px 4px #0002,
+      inset 0 1px 0 #ffffff18;
+  }
+
+  #game .pocket-stick.is-held .pocket-stick-thumb {
+    background: #e9bb7855;
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .ejs_virtualGamepad_open {
+    display: none !important;
+  }
+}

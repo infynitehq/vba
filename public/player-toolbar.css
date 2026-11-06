@@ -1,4 +1,47 @@
 /* Scoped overrides for the pinned emulator UI; no remote icon/font assets. */
+#game .pocket-toolbar .pocket-speed {
+  display: none;
+}
+
+#game .pocket-touch-options {
+  display: none;
+}
+
+@media (pointer: coarse), (max-width: 900px) {
+  #game .pocket-touch-options {
+    display: block;
+  }
+
+  #game .pocket-touch-options p {
+    margin: 10px 0 0;
+    color: #aaa59d;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  #game .pocket-touch-options .pocket-touch-mode[aria-pressed='true'] {
+    border-color: #e9bb7855;
+    background: #e9bb780c;
+    color: #e9bb78;
+  }
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    .pocket-speed {
+    display: inline-flex;
+    font-family: 'Ioskeley Mono', monospace;
+    font-size: 11px;
+    color: #aaa59d;
+    border-radius: 8px;
+  }
+
+  #game:has(.ejs_virtualGamepad_parent:not([style*='display: none']))
+    .pocket-toolbar
+    .pocket-speed:not([data-speed='normal']) {
+    background: #e9bb780c;
+    color: #e9bb78;
+  }
+}
+
 #game .pocket-toolbar {
   display: flex !important;
   align-items: center;

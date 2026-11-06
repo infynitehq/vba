@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MobileLayoutRouteImport } from './routes/mobile-layout'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PlayGameIdRouteImport } from './routes/play.$gameId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MobileLayoutRoute = MobileLayoutRouteImport.update({
+  id: '/mobile-layout',
+  path: '/mobile-layout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -31,30 +37,34 @@ const PlayGameIdRoute = PlayGameIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mobile-layout': typeof MobileLayoutRoute
   '/settings': typeof SettingsRoute
   '/play/$gameId': typeof PlayGameIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mobile-layout': typeof MobileLayoutRoute
   '/settings': typeof SettingsRoute
   '/play/$gameId': typeof PlayGameIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mobile-layout': typeof MobileLayoutRoute
   '/settings': typeof SettingsRoute
   '/play/$gameId': typeof PlayGameIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings' | '/play/$gameId'
+  fullPaths: '/' | '/mobile-layout' | '/settings' | '/play/$gameId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/play/$gameId'
-  id: '__root__' | '/' | '/settings' | '/play/$gameId'
+  to: '/' | '/mobile-layout' | '/settings' | '/play/$gameId'
+  id: '__root__' | '/' | '/mobile-layout' | '/settings' | '/play/$gameId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MobileLayoutRoute: typeof MobileLayoutRoute
   SettingsRoute: typeof SettingsRoute
   PlayGameIdRoute: typeof PlayGameIdRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mobile-layout': {
+      id: '/mobile-layout'
+      path: '/mobile-layout'
+      fullPath: '/mobile-layout'
+      preLoaderRoute: typeof MobileLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MobileLayoutRoute: MobileLayoutRoute,
   SettingsRoute: SettingsRoute,
   PlayGameIdRoute: PlayGameIdRoute,
 }

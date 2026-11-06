@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@12.16.1",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite",
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview --host 0.0.0.0",
     "fetch-emulator": "node --use-system-ca scripts/fetch-emulator.mjs",

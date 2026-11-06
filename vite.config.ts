@@ -8,8 +8,28 @@ import { fileURLToPath } from 'node:url';
 import files from './emulator-files.json';
 
 const base = process.env.VITE_BASE || '/';
-export default defineConfig({
+function devServer() {
+  const value = process.env.PORT;
+  const port = value === undefined ? 5173 : Number(value);
+  if (
+    (value !== undefined && !/^\d+$/.test(value)) ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > 65535
+  ) {
+    throw new Error('PORT must be an integer between 1 and 65535.');
+  }
+  return {
+    host: process.env.HOST || '0.0.0.0',
+    port,
+    strictPort: true,
+    allowedHosts: ['gba.local'],
+  };
+}
+
+export default defineConfig(({ command }) => ({
   base,
+  server: command === 'serve' ? devServer() : undefined,
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [
     tailwindcss(),
@@ -88,4 +108,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

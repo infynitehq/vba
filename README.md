@@ -28,7 +28,35 @@ pnpm audit:pwa          # preview must already be running
 
 The service worker is enabled in **production builds**, not in the development server. Don’t test offline behavior in `pnpm dev`. Preview and localhost are trusted browser origins; installation from another device needs **HTTPS**. If Chromium downloads encounter a corporate certificate error, use `NODE_USE_SYSTEM_CA=1 pnpm exec playwright install chromium`.
 
+### Portless: HTTPS and LAN on macOS
+
+Without a shell `PORT` override, `pnpm dev` serves **http://localhost:5173**. With Portless installed, run `portless gba pnpm dev`; Vite uses its injected `PORT` and `HOST`. Portless terminates HTTPS and forwards HTTP to Vite on loopback. No Vite HTTPS or explicit HMR override is needed; WebSockets use the same proxy.
+
+For **https://gba.local** on this Mac and other devices on the same Wi-Fi, start the proxy in LAN mode:
+
+```sh
+sudo portless proxy stop
+sudo portless proxy start --https --lan --ip 192.168.1.2
+portless gba pnpm dev
+```
+
+`192.168.1.2` is machine-specific: verify the Mac's current Wi-Fi address in **System Settings → Wi-Fi → Details → TCP/IP** (or `ipconfig getifaddr en0` if Wi-Fi uses `en0`) and replace it before running the command. Reconfigure if that address changes. These commands restart the shared Portless proxy and can interrupt other local apps. Current Portless releases require Node 24+; the application itself supports Node 22.19+.
+
+Open **https://gba.local** on either device, not Vite's upstream port. Portless advertises `.local` names through mDNS; allow incoming proxy connections in the macOS firewall and ensure Wi-Fi client isolation/VPN settings do not block local traffic. Each client device must install and trust Portless's local CA: follow the setup instructions printed by LAN mode. On iOS, enable full trust for the installed root certificate in **Settings → General → About → Certificate Trust Settings**. Do not bypass certificate verification.
+
+In another terminal, check the route:
+
+```sh
+portless list
+```
+
+For a **502**, compare the route's upstream port with Vite's startup output: they must match. Restart with `portless gba pnpm dev`, remove any manual `--port` overrides, and check for another process occupying the assigned port. Invalid `PORT` values fail with a clear error; `strictPort` prevents silently switching to a port the proxy cannot reach. If the upstream works but the hostname does not, use `portless doctor` to check proxy/DNS/CA setup. If HMR fails, check the browser's WebSocket connection through `wss://gba.local` before adding HMR overrides. LAN HTTPS does not enable the development service worker; test offline behavior with a production build.
+
 ## Use on your phone
+
+For a quick controls-only preview, open **`/mobile-layout`** (for example, `https://gba.local/mobile-layout`). No game file is required. The placeholder uses the same touch renderer, toolbar and styles as the real player. Try the controls, cycle **1× → 3× → 0.5×**, rotate the phone, or use **Reset** to start over. Save and emulator-settings actions are disabled in the preview.
+
+On mobile, the player adapts automatically between portrait and landscape when you rotate the phone; it does not require fullscreen or request an orientation lock. Under **More options → Movement controls**, choose **D-pad** or **Joystick**. The thumbstick provides eight-direction digital movement (the GBA has no analog movement input), supports diagonals, and releases when lifted, cancelled, or rotated. Both modes also work in `/mobile-layout`.
 
 1. Open the deployed HTTPS site in Safari (iOS) or Chrome (Android).
 2. Add your own `.gba`, or a `.zip` containing exactly one `.gba`. The import limit is 64 MiB (compressed and extracted). A nonstandard header warns rather than blocks; truncated files are rejected. Identical files are detected by SHA-1 and not added twice.
@@ -36,9 +64,9 @@ The service worker is enabled in **production builds**, not in the development s
 4. On the first visit, wait for **Ready offline** in the footer. The entire app and both GBA core variants (~3.5 MiB total before transport compression) are precached automatically. You can then disconnect, import a new game file, and launch it for the first time entirely offline. No online game launch is needed.
 5. Tap the emulator once if audio is locked. Touch buttons are provided by EmulatorJS. In landscape the layout adapts. The app uses the full available viewport; browser chrome remains unless installed or the emulator’s fullscreen action is used.
 
-While the game has focus, **hold Space to fast-forward; release Space to return to normal speed**. There is no extra fast-forward button. The shortcut uses the current ratio (3× by default), does not change your settings, and releases automatically if focus is lost or the page is hidden. Space still types normally in cheat forms. To keep fast-forward permanently enabled, use the emulator’s **Settings → Speed Options → Fast Forward**; releasing Space respects that permanent setting. Change the ratio under **Fast Forward Ratio**. Actual speed depends on your device.
+While the game has focus, **hold Space to fast-forward; release Space to restore the selected speed**. The shortcut uses the current ratio (3× by default), does not change your settings, and releases automatically if focus is lost or the page is hidden. Space still types normally in cheat forms. On mobile, the toolbar's speed button cycles **1× → 3× → 0.5×**. Native speed settings remain available under **Settings → Speed Options**. Actual speed depends on your device.
 
-The floating player toolbar contains only **Pause/Resume**, **Mute/Unmute**, **Fullscreen**, and **More options (⋯)**. On touch devices, tap the small ⋯ control to reveal it. More contains save/load states, battery-save backup/restore, control settings, emulator settings, restart and exit, plus volume adjustment. Restart asks for confirmation. Icons are local, consistent outline SVGs; no icon library, font or CDN is fetched. The More panel supports Escape and keyboard focus containment.
+The mobile player toolbar contains **Pause/Resume**, **Mute/Unmute**, **Speed**, and **More options (⋯)**, without fullscreen. Portrait keeps a separate controller area; landscape fills the player with the game and overlays translucent controls at the edges. Desktop keeps its fullscreen action. More contains D-pad/joystick selection on mobile, save/load states, battery-save backup/restore, control settings, emulator settings, restart and exit, plus volume adjustment. Restart asks for confirmation. Icons are local, consistent outline SVGs; no icon library, font or CDN is fetched. The More panel supports Escape and keyboard focus containment.
 
 ### What “offline” means
 
