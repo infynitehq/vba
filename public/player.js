@@ -9,7 +9,6 @@
       location.origin,
     );
   let db,
-    gameUrl,
     started = false,
     pendingCheats = [];
   let saveTask = Promise.resolve();
@@ -381,7 +380,6 @@
   window.addEventListener('pagehide', () => {
     // Keep the app database open until pending save timestamps are committed.
     void saveInBackground().finally(() => db?.close());
-    if (gameUrl) URL.revokeObjectURL(gameUrl);
   });
   window.addEventListener('error', (event) =>
     report(
@@ -421,13 +419,16 @@
         .getAll(gameId),
     );
     pendingCheats.sort((a, b) => a.createdAt - b.createdAt);
-    gameUrl = URL.createObjectURL(game.blob);
+    // Pass local bytes through EmulatorJS's supported in-memory input path.
+    // Fetching an IndexedDB-backed blob URL adds an unnecessary failure point
+    // in iOS standalone PWAs (reported by the core as "Network Error").
+    const gameData = new Uint8Array(await game.blob.arrayBuffer());
     // Always self-hosted. Neither query parameters nor a CDN can redirect the runtime.
     const path = new URL('./emulatorjs/', location.href).href;
     Object.assign(window, {
       EJS_player: '#game',
       EJS_core: 'gba',
-      EJS_gameUrl: gameUrl,
+      EJS_gameUrl: gameData,
       // Stable content hash makes save identity survive re-imports and renames.
       EJS_gameName: `pocket-${game.id}.gba`,
       EJS_gameID: parseInt(game.hash.slice(0, 8), 16),
