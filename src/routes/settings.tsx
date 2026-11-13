@@ -18,6 +18,7 @@ import {
 } from '../components/ui/dialog';
 import { About } from '../components/About';
 import { isDesktop, openExternal, pickFile } from '../platform';
+import { WebSettingsUpdates } from '../updates/WebSettingsUpdates';
 
 const DesktopUpdateSettings = isDesktop
   ? lazy(() => import('../updates/SettingsUpdates'))
@@ -182,57 +183,57 @@ function Settings() {
           />
         </SettingsGroup>
 
-        {isDesktop && (
-          <SettingsGroup title="Updates" id="update-settings">
-            {DesktopUpdateSettings ? (
-              <Suspense
-                fallback={
-                  <p className="px-4 py-4 text-xs text-muted">
-                    Loading update settings…
-                  </p>
-                }
-              >
-                <DesktopUpdateSettings />
-              </Suspense>
-            ) : null}
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-5">
-              <div className="min-w-0">
-                <p className="text-xs">Manual downloads</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                  All desktop installers, including Linux .deb packages.
+        <SettingsGroup title="Updates" id="update-settings">
+          {isDesktop && DesktopUpdateSettings ? (
+            <Suspense
+              fallback={
+                <p className="px-4 py-4 text-xs text-muted">
+                  Loading update settings…
                 </p>
-              </div>
-              <a
-                className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-sm text-xs text-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
-                href="https://github.com/infynitehq/vba/releases"
-                target="_blank"
-                rel="noreferrer"
-                onClick={(event) => {
-                  if (!isDesktop) return;
-                  event.preventDefault();
-                  void openExternal(
-                    'https://github.com/infynitehq/vba/releases',
-                  ).catch((error: unknown) => toast(friendlyError(error)));
-                }}
-              >
-                View releases
-                <svg
-                  aria-hidden="true"
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M7 17 17 7M7 7h10v10" />
-                </svg>
-              </a>
+              }
+            >
+              <DesktopUpdateSettings />
+            </Suspense>
+          ) : (
+            <WebSettingsUpdates />
+          )}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-xs">Manual downloads</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                All desktop installers, including Linux .deb packages.
+              </p>
             </div>
-          </SettingsGroup>
-        )}
+            <a
+              className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-sm text-xs text-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+              href="https://github.com/infynitehq/vba/releases"
+              target="_blank"
+              rel="noreferrer"
+              onClick={(event) => {
+                if (!isDesktop) return;
+                event.preventDefault();
+                void openExternal(
+                  'https://github.com/infynitehq/vba/releases',
+                ).catch((error: unknown) => toast(friendlyError(error)));
+              }}
+            >
+              View releases
+              <svg
+                aria-hidden="true"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M7 17 17 7M7 7h10v10" />
+              </svg>
+            </a>
+          </div>
+        </SettingsGroup>
         <SettingsGroup title="Reset" id="reset-settings">
           <SettingsRow
             title="Clear local data"

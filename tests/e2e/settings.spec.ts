@@ -1,13 +1,48 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+test('web update checks report success and connection errors', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/settings');
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  const updates = page.getByRole('region', { name: 'Updates', exact: true });
+  const check = updates.getByRole('button', { name: 'Check for updates' });
+  await expect(check).toBeEnabled();
+  await check.click();
+  await expect(updates.getByRole('status')).toContainText(
+    'Update check complete',
+  );
+  await expect(check).toBeEnabled();
+  await context.setOffline(true);
+  await check.click();
+  await expect(updates.getByRole('status')).not.toContainText(
+    'Update check complete',
+  );
+  await expect(check).toBeEnabled();
+  await context.setOffline(false);
+  await check.click();
+  await expect(updates.getByRole('status')).toContainText(
+    'Update check complete',
+  );
+});
+
 test('settings groups device controls and shows developer information', async ({
   page,
 }) => {
   await page.goto('/settings');
-  for (const name of ['Storage', 'Backups', 'Reset']) {
+  for (const name of ['Storage', 'Backups', 'Updates', 'Reset']) {
     await expect(page.getByRole('region', { name, exact: true })).toBeVisible();
   }
+  const updates = page.getByRole('region', { name: 'Updates', exact: true });
+  await expect(
+    updates.getByRole('button', { name: 'Check for updates' }),
+  ).toBeVisible();
+  await expect(updates.getByText('Automatic update checks')).toBeVisible();
+  await expect(
+    updates.getByRole('link', { name: 'View releases' }),
+  ).toHaveAttribute('href', 'https://github.com/infynitehq/vba/releases');
   await expect(
     page.getByRole('region', { name: 'App', exact: true }),
   ).toHaveCount(0);
@@ -18,6 +53,12 @@ test('settings groups device controls and shows developer information', async ({
     name: 'Toggle original portrait of Soham Datta',
   });
   await expect(portrait).toBeVisible();
+  // Offline readiness changes the wrapped footer height on narrow screens.
+  await expect(page.getByText('Ready offline', { exact: true })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready.then(() => true));
+  await portrait.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+  );
   await portrait.hover({ position: { x: 6, y: 6 } });
   await expect(portrait).toHaveAttribute('data-revealing', '');
   const tiles = portrait.locator('.portrait-tile');
