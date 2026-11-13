@@ -32,10 +32,10 @@ describe('cheat validation', () => {
       cheatFormSchema.parse({
         label: ' Test ',
         code: '82000000 1234',
-        gameCode: 'bpre',
+        gameCode: 'test',
         version: '0',
       }).gameCode,
-    ).toBe('BPRE');
+    ).toBe('TEST');
     expect(
       cheatFormSchema.safeParse({
         label: '',
@@ -55,7 +55,7 @@ describe('cheat validation', () => {
       createdAt: 0,
       version: 0,
     };
-    expect(mismatch(cheat, { gameCode: 'BPRE', version: 1 })).toBe(true);
-    expect(mismatch(cheat, { gameCode: 'BPRE', version: 0 })).toBe(false);
+    expect(mismatch(cheat, { gameCode: 'TEST', version: 1 })).toBe(true);
+    expect(mismatch(cheat, { gameCode: 'TEST', version: 0 })).toBe(false);
   });
 });

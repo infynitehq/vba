@@ -4,12 +4,12 @@ describe('GBA header', () => {
   it('parses exact offsets and preserves version zero', () => {
     const bytes = new Uint8Array(192);
     bytes.set(new TextEncoder().encode('POCKET TEST'), 0xa0);
-    bytes.set(new TextEncoder().encode('BPRE01'), 0xac);
+    bytes.set(new TextEncoder().encode('TEST01'), 0xac);
     bytes[0xb2] = 0x96;
     bytes[0xbc] = 0;
     expect(parseRomHeader(bytes.buffer)).toEqual({
       title: 'POCKET TEST',
-      gameCode: 'BPRE',
+      gameCode: 'TEST',
       makerCode: '01',
       version: 0,
       validFixedByte: true,

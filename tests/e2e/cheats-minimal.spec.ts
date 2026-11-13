@@ -8,20 +8,20 @@ test('cheat tiles balance codes and actions in a responsive grid', async ({
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
   await page.getByTestId('game-upload').setInputFiles({
-    name: 'FireRed preview.gba',
+    name: 'Display preview.gba',
     mimeType: 'application/octet-stream',
     buffer: diagnosticRom(),
   });
   const notification = page.getByRole('dialog', { name: 'Notification' });
   await notification.getByRole('button', { name: 'Got it' }).click();
   await page
-    .getByRole('button', { name: 'Cheats for FireRed preview' })
+    .getByRole('button', { name: 'Cheats for Display preview' })
     .click();
   const sheet = page.getByRole('dialog', { name: 'Cheats', exact: true });
   for (const [label, code] of [
-    ['Master Code', 'E6A003D6 8110DDD5\nA47FB2DC 1AF3CA86'],
-    ['Anti-DMA', '24C35E88 037C3033\n78DA95DF 44018CB4'],
-    ['Rare Candy', 'C12BBBE1 D1ED426C'],
+    ['Master Code', '01234567 89ABCDEF\n12345678 ABCDEF00'],
+    ['Test Code', '82000000 1234\n82000002 5678'],
+    ['Extra Code', '82000004 9ABC'],
   ]) {
     await sheet.getByRole('button', { name: 'Add cheat', exact: true }).click();
     await sheet.getByLabel('Name', { exact: true }).fill(label);
@@ -48,7 +48,7 @@ test('cheat tiles balance codes and actions in a responsive grid', async ({
   ).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe('E6A003D6 8110DDD5\nA47FB2DC 1AF3CA86');
+    .toBe('01234567 89ABCDEF\n12345678 ABCDEF00');
   const more = sheet.getByRole('button', {
     name: 'More options for Master Code',
     exact: true,
@@ -84,7 +84,7 @@ test('cheat tiles balance codes and actions in a responsive grid', async ({
         .getByRole('article', { name: 'Master Code', exact: true })
         .boundingBox())!;
       const second = (await sheet
-        .getByRole('article', { name: 'Anti-DMA', exact: true })
+        .getByRole('article', { name: 'Test Code', exact: true })
         .boundingBox())!;
       if (width < 640) {
         expect(second.x).toBe(first.x);
@@ -126,13 +126,13 @@ test('cheat tiles balance codes and actions in a responsive grid', async ({
   await expect(notification).toContainText('Could not copy the code.');
   await notification.getByRole('button', { name: 'Got it' }).click();
   await sheet
-    .getByRole('button', { name: 'More options for Rare Candy', exact: true })
+    .getByRole('button', { name: 'More options for Extra Code', exact: true })
     .click();
   page.once('dialog', (dialog) => dialog.accept());
   await page
-    .getByRole('menuitem', { name: 'Delete Rare Candy', exact: true })
+    .getByRole('menuitem', { name: 'Delete Extra Code', exact: true })
     .click();
   await expect(
-    sheet.getByRole('heading', { name: 'Rare Candy', exact: true }),
+    sheet.getByRole('heading', { name: 'Extra Code', exact: true }),
   ).toHaveCount(0);
 });
