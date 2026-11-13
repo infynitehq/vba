@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { button } from './ui';
 import { Button } from './ui/button';
+import { isDesktop } from '../platform';
 interface InstallPrompt extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -15,6 +16,7 @@ const InstallContext = createContext<InstallPrompt | null>(null);
 export function InstallProvider({ children }: { children: ReactNode }) {
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
   useEffect(() => {
+    if (isDesktop) return;
     const capture = (event: Event) => {
       event.preventDefault();
       setPrompt(event as InstallPrompt);
@@ -34,7 +36,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
 export function InstallButton() {
   const prompt = useContext(InstallContext);
   const [used, setUsed] = useState(false);
-  return prompt && !used ? (
+  return !isDesktop && prompt && !used ? (
     <Button
       className={`${button} text-ink`}
       onClick={async () => {

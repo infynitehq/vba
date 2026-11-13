@@ -49,12 +49,35 @@ async function addGame(page: Page, name: string, bytes: Buffer) {
     mimeType: 'application/octet-stream',
     buffer: bytes,
   });
+  await dismissNotification(page, /added/i);
   await expect(
     page.getByRole('heading', {
       name: name.replace(/\.(gba|zip)$/, ''),
       exact: true,
     }),
   ).toBeVisible();
+}
+async function dismissNotification(page: Page, message: string | RegExp) {
+  const notification = page.getByRole('dialog', {
+    name: 'Notification',
+    exact: true,
+  });
+  await expect(notification).toContainText(message);
+  await notification
+    .getByRole('button', { name: 'Got it', exact: true })
+    .click();
+  await expect(notification).toBeHidden();
+}
+
+async function resumeCheckpoint(page: Page) {
+  const resume = page
+    .frameLocator('iframe')
+    .getByRole('dialog', { name: 'Resume last checkpoint?', exact: true });
+  await expect(resume).toBeVisible();
+  await resume
+    .getByRole('button', { name: 'Resume checkpoint', exact: true })
+    .click();
+  await expect(resume).toBeHidden();
 }
 test('local library, cheats, two isolated launches, accessibility and offline core', async ({
   page,
@@ -117,13 +140,18 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   await page.getByLabel('Name', { exact: true }).fill('Test code');
   await page.getByLabel('Cheat code', { exact: true }).fill('82000000 1234');
   await page.getByRole('button', { name: 'Save cheat' }).click();
+  await dismissNotification(page, 'Cheat saved.');
   await page.getByRole('checkbox', { name: 'Enable Test code' }).click();
   await expect(
     page.getByRole('checkbox', { name: 'Enable Test code' }),
   ).toBeChecked();
-  await page.getByRole('button', { name: 'Edit Test code' }).click();
+  await page
+    .getByRole('button', { name: 'More options for Test code' })
+    .click();
+  await page.getByRole('menuitem', { name: 'Edit Test code' }).click();
   await page.getByLabel('Name', { exact: true }).fill('Edited code');
   await page.getByRole('button', { name: 'Save cheat' }).click();
+  await dismissNotification(page, 'Cheat updated.');
   const downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const backup = await downloaded;
@@ -248,6 +276,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   ).toBeVisible();
   await page.keyboard.up('Space');
   await expect.poll(speed).toBe(false);
+  await dismissNotification(page, 'Fast forward could not be changed.');
   expect(await emulatorFrame.evaluate(() => window.EJS_emulator.started)).toBe(
     true,
   );
@@ -290,8 +319,11 @@ test('local library, cheats, two isolated launches, accessibility and offline co
       .getByRole('button', { name: 'Dismiss notification' })
       .first()
       .click();
-  if (await frame.locator('.ejs_menu_bar_hidden').count())
-    await frame.locator('.ejs_virtualGamepad_open').tap();
+  const showControls = frame.getByRole('button', {
+    name: 'Show game controls',
+    exact: true,
+  });
+  if (await showControls.isVisible()) await showControls.tap();
   const toolbar = frame.getByRole('toolbar', { name: 'Game controls' });
   await expect(toolbar).toBeVisible();
   await expect(toolbar).toHaveCSS('opacity', '1');
@@ -364,10 +396,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
     )
     .toBe(42);
   const savDownloadPromise = page.waitForEvent('download');
-  if (await frame.locator('.ejs_menu_bar_hidden').count())
-    await frame
-      .getByRole('button', { name: 'Show game controls', exact: true })
-      .tap();
+  if (await showControls.isVisible()) await showControls.tap();
   await toolbar
     .getByRole('button', { name: 'More options', exact: true })
     .click();
@@ -377,24 +406,31 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   const savDownload = await savDownloadPromise;
   expect(savDownload.suggestedFilename()).toBe('Own adventure.sav');
   expect((await readFile((await savDownload.path())!))[0]).toBe(42);
-  // Simulate a bridge failure: named toast, still-running emulator.
+  // Live cheat changes must be deferred: resetting/reapplying mGBA hooks in an
+  // already-running game is unsafe. Observe the actual bridge, not just the UI.
   await emulatorFrame.evaluate(() => {
     const manager = window.EJS_emulator.gameManager;
     const original = manager.setCheat.bind(manager);
-    manager.setCheat = () => {
-      manager.setCheat = original;
-      throw new Error('Test-only bridge failure');
+    window.pocketCheatCalls = [];
+    manager.setCheat = (...args) => {
+      window.pocketCheatCalls.push(args);
+      original(...args);
     };
   });
   await page.getByRole('button', { name: 'Cheats', exact: true }).click();
   const toggle = page.getByRole('checkbox', { name: 'Enable Edited code' });
   await toggle.click();
   await expect(toggle).not.toBeChecked();
+  const cheatsPending = page
+    .getByRole('status', { includeHidden: true })
+    .filter({ hasText: 'Cheat changes apply next launch' });
+  await expect(cheatsPending).toBeVisible();
   await toggle.click();
   await expect(toggle).toBeChecked();
-  await expect(
-    page.getByText('“Edited code” could not be applied.', { exact: false }),
-  ).toBeVisible();
+  await expect(cheatsPending).toBeHidden();
+  expect(await emulatorFrame.evaluate(() => window.pocketCheatCalls)).toEqual(
+    [],
+  );
   expect(await emulatorFrame.evaluate(() => window.EJS_emulator.started)).toBe(
     true,
   );
@@ -466,6 +502,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   await expect(
     page.frameLocator('iframe').locator('canvas').first(),
   ).toBeVisible({ timeout: 60_000 });
+  await resumeCheckpoint(page);
   await page.getByRole('button', { name: 'Library', exact: true }).click();
   await exitConfirmation.getByRole('button', { name: 'Exit game' }).click();
   await expect(
@@ -476,7 +513,10 @@ test('local library, cheats, two isolated launches, accessibility and offline co
     page.getByRole('checkbox', { name: 'Enable Edited code' }),
   ).toBeChecked();
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Delete Edited code' }).click();
+  await page
+    .getByRole('button', { name: 'More options for Edited code' })
+    .click();
+  await page.getByRole('menuitem', { name: 'Delete Edited code' }).click();
   await expect(page.getByRole('heading', { name: 'Edited code' })).toHaveCount(
     0,
   );
@@ -484,6 +524,10 @@ test('local library, cheats, two isolated launches, accessibility and offline co
     .getByRole('dialog')
     .locator('input[type=file]')
     .setInputFiles(filePath!);
+  await dismissNotification(
+    page,
+    'Cheats imported. Matching IDs were updated.',
+  );
   await expect(
     page.getByRole('heading', { name: 'Edited code' }),
   ).toBeVisible();
@@ -499,6 +543,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   await expect(
     page.getByText('Cheats imported.', { exact: true }),
   ).toBeVisible();
+  await dismissNotification(page, 'Cheats imported.');
   await page.getByRole('link', { name: 'Library', exact: true }).click();
   await page
     .getByRole('link', { name: 'Play Own adventure', exact: true })
@@ -506,6 +551,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
   await expect(
     page.frameLocator('iframe').locator('canvas').first(),
   ).toBeVisible();
+  await resumeCheckpoint(page);
   await expect
     .poll(() =>
       page
@@ -535,10 +581,11 @@ test('local library, cheats, two isolated launches, accessibility and offline co
     await writeFile('dist/sw.js', sw);
   }
   const lastFrame = page.frameLocator('iframe');
-  if (await lastFrame.locator('.ejs_menu_bar_hidden').count())
-    await lastFrame
-      .getByRole('button', { name: 'Show game controls', exact: true })
-      .tap();
+  const lastShowControls = lastFrame.getByRole('button', {
+    name: 'Show game controls',
+    exact: true,
+  });
+  if (await lastShowControls.isVisible()) await lastShowControls.tap();
   await lastFrame
     .getByRole('button', { name: 'More options', exact: true })
     .click();
@@ -560,6 +607,7 @@ test('local library, cheats, two isolated launches, accessibility and offline co
 declare global {
   interface Window {
     pocketSpeedCalls: number[];
+    pocketCheatCalls: [number, boolean, string][];
     EJS_emulator: {
       started: boolean;
       isFastForward: boolean;

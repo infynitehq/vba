@@ -1,0 +1,40 @@
+[package]
+name = "pocket-gba"
+version = "0.2.0"
+description = "A private, local Game Boy Advance player"
+edition = "2021"
+rust-version = "1.90"
+
+[lib]
+name = "pocket_gba_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2.14.1"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
+uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+open = "5"
+rfd = { version = "0.15", default-features = false }
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+base64 = "0.23"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# GTK is already required by Tauri. This also provides native timeout dialogs
+# without requiring a separate zenity executable in Linux packages.
+rfd = { version = "0.15", default-features = false, features = ["gtk3"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

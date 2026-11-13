@@ -59,13 +59,7 @@ export function EmptyLibraryIllustration() {
           viewBox="0 0 400 320"
           className="block w-full"
           focusable="false"
-        >
-          <g className="handheld-fallback">
-            <rect x="147" y="83" width="106" height="164" rx="14" />
-            <rect x="161" y="105" width="78" height="62" rx="6" />
-            <path d="M166 197h26m-13-13v26m37-18h1m16-8h1" />
-          </g>
-        </svg>
+        />
       </div>
     </div>
   );

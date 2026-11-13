@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { gamesQuery, useDataMutation } from '../data/queries';
 import { data, friendlyError, type Game } from '../data/db';
@@ -23,6 +23,8 @@ import {
 } from '../components/ui/dropdown-menu';
 import { CheatSheet } from '../components/CheatSheet';
 import { useToast } from '../components/Toast';
+import { isDesktop, pickFile } from '../platform';
+import { onOpenGame } from '../platform/events';
 
 export const Route = createFileRoute('/')({
   validateSearch: z.object({ cheats: z.string().optional() }),
@@ -51,7 +53,9 @@ function Library() {
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const [cheatGame, setCheatGame] = useState<Game | null>(null);
-  const add = useDataMutation(async (file: File) => {
+  const add = useDataMutation(async (selected?: File) => {
+    const file = selected ?? (await pickFile('rom'));
+    if (!file) return;
     const { buffer, filename } = await readGameFile(file);
     const header = parseRomHeader(buffer);
     if (
@@ -87,7 +91,7 @@ function Library() {
       lastPlayedAt: null,
     };
     await data.addGame(game);
-    if (!games.length) {
+    if (!games.length && !isDesktop) {
       try {
         const persistent = await navigator.storage?.persist?.();
         toast(
@@ -101,6 +105,20 @@ function Library() {
     } else toast(`“${game.name}” added to your pocket.`);
   });
   const remove = useDataMutation(data.removeGame);
+  const { mutate: addGame, isPending: addingGame } = add;
+  useEffect(
+    () =>
+      onOpenGame(
+        () => {
+          if (!addingGame)
+            addGame(undefined, {
+              onError: (error) => toast(friendlyError(error)),
+            });
+        },
+        (error) => toast(friendlyError(error)),
+      ),
+    [addGame, addingGame, toast],
+  );
   const openCheats = (game: Game) => setCheatGame(game);
   const activeCheat =
     cheatGame ?? games.find((game) => game.id === search.cheats);
@@ -122,7 +140,13 @@ function Library() {
           variant="primary"
           size="xs"
           className="border border-primary/25 hover:border-primary/40"
-          onClick={() => input.current?.click()}
+          onClick={() => {
+            if (isDesktop)
+              add.mutate(undefined, {
+                onError: (error) => toast(friendlyError(error)),
+              });
+            else input.current?.click();
+          }}
           disabled={add.isPending}
         >
           <span className="text-primary">

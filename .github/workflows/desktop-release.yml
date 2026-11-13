@@ -1,0 +1,114 @@
+name: Desktop draft release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag at this workflow commit (v0.2.0 or v0.2.0-beta.1)
+        required: true
+        type: string
+      sign:
+        description: Optional paid OS signing (macOS Developer ID/notarization and Windows Authenticode)
+        default: false
+        type: boolean
+      updater:
+        description: Sign updates with the free updater key and stage a draft release
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      sign: ${{ steps.release.outputs.sign }}
+      updater: ${{ steps.release.outputs.updater }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1 # v4.2.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Validate existing release tag and independent signing options
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+          RELEASE_EVENT: ${{ github.event_name }}
+          PLATFORM_SIGN_REQUESTED: ${{ inputs.sign }}
+          UPDATER_REQUESTED: ${{ inputs.updater }}
+          DESKTOP_PLATFORM_SIGNING: ${{ vars.DESKTOP_PLATFORM_SIGNING }}
+        run: |
+          set -euo pipefail
+          pnpm release:version --check --tag "$RELEASE_TAG"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$GITHUB_SHA" || {
+            echo "::error::Select the tag's commit as the workflow ref; refusing mismatched binaries."
+            exit 1
+          }
+          node scripts/release-options.mjs >> "$GITHUB_OUTPUT"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - name: Validate public update distribution repository
+        if: steps.release.outputs.updater == 'true'
+        env:
+          DESKTOP_UPDATE_REPOSITORY: ${{ vars.DESKTOP_UPDATE_REPOSITORY }}
+          DESKTOP_UPDATE_ENDPOINT: ${{ vars.DESKTOP_UPDATE_ENDPOINT }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/validate-release-repository.mjs
+      - run: node --test tests/release/*.test.mjs
+  build:
+    needs: validate
+    uses: ./.github/workflows/desktop-build.yml
+    with:
+      sign: ${{ needs.validate.outputs.sign == 'true' }}
+      updater: ${{ needs.validate.outputs.updater == 'true' }}
+      release_tag: ${{ needs.validate.outputs.tag }}
+    secrets: inherit
+  draft:
+    if: needs.validate.outputs.updater == 'true'
+    needs: [validate, build]
+    runs-on: ubuntu-22.04
+    environment: release
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+      PLATFORM_SIGNED: ${{ needs.validate.outputs.sign }}
+      DESKTOP_UPDATE_REPOSITORY: ${{ vars.DESKTOP_UPDATE_REPOSITORY }}
+      DESKTOP_UPDATE_PUBLIC_KEY: ${{ vars.DESKTOP_UPDATE_PUBLIC_KEY }}
+      DESKTOP_UPDATE_ENDPOINT: ${{ vars.DESKTOP_UPDATE_ENDPOINT }}
+      GH_TOKEN: ${{ secrets.DESKTOP_RELEASE_TOKEN || github.token }}
+      UPDATE_ARTIFACT_DIRECTORY: update-artifacts
+      RELEASE_OUTPUT_DIRECTORY: release-output
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: update-*
+          path: update-artifacts
+      - name: Assemble complete four-platform feed
+        run: node scripts/make-update-manifest.mjs
+      - name: Stage draft and prove all uploaded assets (never publish)
+        run: node scripts/stage-update-release.mjs release-output/release-assets.json
+      - name: Retain staged draft verification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-draft-verification
+          if-no-files-found: error
+          path: release-output/

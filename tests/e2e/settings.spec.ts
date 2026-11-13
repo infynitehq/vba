@@ -63,10 +63,24 @@ test('settings groups device controls and shows developer information', async ({
   await expect(
     page.getByText('EmulatorJS 4.2.3 / mGBA.', { exact: false }),
   ).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Say hello' })).toHaveAttribute(
-    'href',
-    'mailto:dattasoham805@gmail.com',
-  );
+  await expect(
+    page.getByRole('link', { name: 'Soham Datta', exact: true }),
+  ).toHaveAttribute('href', 'mailto:dattasoham805@gmail.com');
+  await expect(
+    page.getByRole('link', { name: 'Sponsor my work on GitHub' }),
+  ).toHaveAttribute('href', 'https://github.com/sponsors/tech-savvy-guy');
+  await page.getByRole('link', { name: 'Sponsor my work on GitHub' }).hover();
+  await expect(portrait).toHaveAttribute('data-sponsor-revealing', '');
+  await expect(tiles.nth(240)).toHaveCSS('transition-delay', '0s');
+  await expect(tiles.first()).toHaveCSS('transition-delay', '0.48s');
+  await expect(tiles.first()).toHaveCSS('opacity', '1');
+  await expect(portrait).toHaveAttribute('aria-pressed', 'false');
+  await page.mouse.move(0, 0);
+  await expect(portrait).not.toHaveAttribute('data-sponsor-revealing');
+  await expect(tiles.first()).toHaveCSS('opacity', '0');
+  await expect(
+    page.getByRole('link', { name: 'Source code', exact: true }),
+  ).toHaveAttribute('href', 'https://github.com/infynitehq/vba');
 
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export all cheats' }).click();

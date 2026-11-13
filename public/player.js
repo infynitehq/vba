@@ -3,6 +3,7 @@
   const params = new URLSearchParams(location.search);
   const gameId = params.get('gameId');
   const channel = params.get('channel');
+  const desktop = params.get('desktop') === '1';
   const send = (type, payload = {}) =>
     parent.postMessage(
       { source: 'pocket-gba-player', channel, type, ...payload },
@@ -20,26 +21,108 @@
   let checkpointReady = Promise.resolve();
   let flushTask = Promise.resolve();
   let exitTask;
+  let prepareTask;
+  let closeAttempt;
+  let prepared = false;
+  let resumeAfterClose = false;
+  const closeRequests = new Set();
+  const fileRequests = new Map();
+  function fileRequest(type, payload) {
+    if ((closeAttempt && !closeAttempt.cancelled) || prepared)
+      return Promise.reject(new Error('The game is preparing to close.'));
+    const requestId = crypto.randomUUID();
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        fileRequests.delete(requestId);
+        reject(new Error('The file dialog timed out. Try again.'));
+      }, 120000);
+      fileRequests.set(requestId, { resolve, reject, timer, type });
+      send(type, { requestId, ...payload });
+    });
+  }
+  async function exportFile(bytes, name) {
+    try {
+      await fileRequest('export-file', { bytes: new Uint8Array(bytes), name });
+    } catch {
+      send('error', {
+        message: 'The backup could not be exported. Try again.',
+      });
+    }
+  }
+  async function importFile(kind) {
+    const result = await fileRequest('import-file', { kind });
+    if (result.cancelled) return null;
+    const bytes = result.bytes;
+    if (
+      !(bytes instanceof ArrayBuffer || bytes instanceof Uint8Array) ||
+      !bytes.byteLength ||
+      bytes.byteLength > 64 * 1024 * 1024
+    )
+      throw new Error('Invalid imported file');
+    return new Uint8Array(bytes);
+  }
   let exiting = false;
   const message = document.getElementById('message');
   const report = (error) => {
     message.hidden = false;
     message.textContent =
       error instanceof Error ? error.message : String(error);
-    send('error', { message: message.textContent });
+    send('error', {
+      message: message.textContent,
+      name: String(error?.name ?? ''),
+      stack: String(error?.stack ?? ''),
+      phase: started ? 'playing' : 'startup',
+    });
   };
   // The pinned core stores this promise without awaiting it or attaching a
   // rejection handler. Safari's denial is just "Permission was denied", so it
   // cannot safely be identified by the global error handler below. Handle the
   // optional request at its source, while preserving its result for callers.
   // This navigator belongs to the player frame; React owns the app's wake lock.
-  if (navigator.wakeLock?.request) {
+  if (desktop && 'wakeLock' in navigator) {
+    // The parent React shell already owns the optional screen wake lock. The
+    // embedded core must not create a second request in a restricted WebView.
+    Object.defineProperty(navigator, 'wakeLock', {
+      configurable: true,
+      value: undefined,
+    });
+  } else if (navigator.wakeLock?.request) {
     const wakeLock = navigator.wakeLock;
     const requestWakeLock = wakeLock.request.bind(wakeLock);
-    wakeLock.request = (...args) => {
-      const result = requestWakeLock(...args);
-      void result.catch(() => {});
-      return result;
+    Object.defineProperty(wakeLock, 'request', {
+      configurable: true,
+      value: (...args) => {
+        const result = requestWakeLock(...args);
+        void result.catch(() => {});
+        return result;
+      },
+    });
+  }
+  // EmulatorJS polls controllers during startup without handling permission
+  // denials. Some WebViews expose this optional API but reject its use. Fall
+  // back to keyboard/touch controls, rather than aborting game initialization.
+  let gamepadDeniedReported = false;
+  for (const name of ['getGamepads', 'webkitGetGamepads']) {
+    if (typeof navigator[name] !== 'function') continue;
+    const getGamepads = navigator[name].bind(navigator);
+    navigator[name] = (...args) => {
+      try {
+        return getGamepads(...args);
+      } catch (error) {
+        if (
+          error?.name !== 'SecurityError' &&
+          error?.name !== 'NotAllowedError'
+        )
+          throw error;
+        if (!gamepadDeniedReported) {
+          gamepadDeniedReported = true;
+          console.warn(
+            'Gamepad access was denied. Keyboard and touch controls remain available.',
+            error,
+          );
+        }
+        return [];
+      }
     };
   }
   const request = (req) =>
@@ -123,7 +206,17 @@
     'keydown',
     (event) => {
       if (
+        prepared ||
+        (closeAttempt && !closeAttempt.cancelled && !checkpointPending)
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (
         !started ||
+        (closeAttempt && !closeAttempt.cancelled) ||
+        prepared ||
         event.code !== 'Space' ||
         event.altKey ||
         event.ctrlKey ||
@@ -165,6 +258,19 @@
     true,
   );
   window.addEventListener('blur', releaseSpeed);
+  window.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (
+        prepared ||
+        (closeAttempt && !closeAttempt.cancelled && !checkpointPending)
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
   function applyCheats(cheats) {
     pendingCheats = cheats;
     if (!started) return;
@@ -300,36 +406,71 @@
       if (resumePlayback) emulator.play();
     }
   }
-  function exitGame() {
-    if (exitTask) return exitTask;
-    exitTask = (async () => {
-      releaseSpeed();
-      await checkpointReady;
+  function prepareClose() {
+    if (prepared) return Promise.resolve();
+    if (prepareTask) return prepareTask;
+    const attempt = { cancelled: false };
+    closeAttempt = attempt;
+    prepareTask = (async () => {
       const emulator = window.EJS_emulator;
-      const resumePlayback = started && !emulator.paused;
-      if (started) emulator.pause();
-      message.hidden = false;
-      message.textContent = 'Saving before exit…';
       try {
+        releaseSpeed();
+        resumeAfterClose = false;
+        await checkpointReady;
+        if (attempt.cancelled) throw new Error('Close cancelled');
+        if (fileRequests.size)
+          throw new Error('Finish the file dialog before closing.');
+        resumeAfterClose = started && !emulator.paused;
+        if (started) {
+          emulator.pause();
+          // Do not carry held gamepad/keyboard buttons into a cancelled close.
+          for (let input = 0; input < 16; input++)
+            emulator.gameManager.simulateInput?.(0, input, 0);
+        }
+        message.hidden = false;
+        message.textContent = 'Saving before exit…';
         await flush({ checkpoint: autoSaveOnExit });
+        if (attempt.cancelled) throw new Error('Close cancelled');
+        prepared = true;
         exiting = true;
-        send('request-exit');
-      } catch {
+      } catch (error) {
         message.hidden = true;
         send('error', {
           message:
             'Progress could not be saved. Your game is still open. Free browser storage or back up your saves, then try exiting again.',
         });
-        if (resumePlayback) emulator.play();
+        if (resumeAfterClose) emulator.play();
+        throw error;
       } finally {
-        exitTask = undefined;
+        if (closeAttempt === attempt) closeAttempt = undefined;
+        prepareTask = undefined;
       }
     })();
+    return prepareTask;
+  }
+  function cancelClose() {
+    if (closeAttempt) closeAttempt.cancelled = true;
+    if (prepared || closeAttempt) {
+      prepared = false;
+      exiting = false;
+      message.hidden = true;
+      if (resumeAfterClose) window.EJS_emulator.play();
+    }
+  }
+  function exitGame() {
+    if (exitTask) return exitTask;
+    exitTask = prepareClose()
+      .then(() => send('request-exit'))
+      .catch(() => {})
+      .finally(() => {
+        exitTask = undefined;
+      });
     return exitTask;
   }
   function saveInBackground() {
     releaseSpeed();
-    if (checkpointPending || exiting) return flushTask.catch(() => {});
+    if (checkpointPending || closeAttempt || exiting)
+      return flushTask.catch(() => {});
     return flush({ checkpoint: autoSaveOnExit }).catch(() => {
       send('error', {
         message:
@@ -360,16 +501,55 @@
       event.data.channel !== channel
     )
       return;
+    if (
+      desktop &&
+      ['export-result', 'import-result'].includes(event.data.type)
+    ) {
+      const pending = fileRequests.get(event.data.requestId);
+      if (
+        !pending ||
+        event.data.type !== pending.type.replace('-file', '-result')
+      )
+        return;
+      clearTimeout(pending.timer);
+      fileRequests.delete(event.data.requestId);
+      if (event.data.ok === true) pending.resolve(event.data);
+      else pending.reject(new Error('File operation failed'));
+    }
     if (event.data.type === 'apply-cheats' && Array.isArray(event.data.cheats))
       applyCheats(event.data.cheats);
     if (
       event.data.type === 'fast-forward-held' &&
       typeof event.data.held === 'boolean'
     ) {
-      updateSpeedHold('app', event.data.held);
+      if ((!closeAttempt || closeAttempt.cancelled) && !prepared)
+        updateSpeedHold('app', event.data.held);
     }
     if (event.data.type === 'exit') {
       await exitGame();
+    }
+    if (
+      event.data.type === 'prepare-close' &&
+      typeof event.data.requestId === 'string' &&
+      event.data.requestId.length > 0 &&
+      event.data.requestId.length <= 200
+    ) {
+      const requestId = event.data.requestId;
+      closeRequests.add(requestId);
+      try {
+        await prepareClose();
+        send('close-prepared', { requestId });
+      } catch {
+        closeRequests.delete(requestId);
+        send('close-failed', { requestId });
+      }
+    }
+    if (
+      event.data.type === 'cancel-close' &&
+      closeRequests.has(event.data.requestId)
+    ) {
+      closeRequests.clear();
+      cancelClose();
     }
   });
   document.addEventListener('visibilitychange', () => {
@@ -383,10 +563,11 @@
   });
   window.addEventListener('error', (event) =>
     report(
-      new Error(
-        event.message ||
-          'The emulator could not load. Return to the library and try again.',
-      ),
+      event.error ??
+        new Error(
+          event.message ||
+            'The emulator could not load. Return to the library and try again.',
+        ),
     ),
   );
   window.addEventListener('unhandledrejection', (event) => {
@@ -516,6 +697,55 @@
         // Reconcile temporary holds with permanent native-menu changes.
         const emulator = window.EJS_emulator;
         emulator.on('saveSaveFiles', trackSave);
+        if (desktop) {
+          emulator.on('saveState', async ({ state }) => {
+            try {
+              const name = `${emulator.getBaseFileName()}.state`;
+              if (
+                emulator.getSettingValue('save-state-location') === 'browser' &&
+                emulator.saveInBrowserSupported()
+              ) {
+                await emulator.storage.states.put(name, state);
+                emulator.displayMessage(
+                  emulator.localization('SAVE SAVED TO BROWSER'),
+                );
+              } else {
+                await exportFile(state, name);
+              }
+            } catch {
+              send('error', {
+                message: 'The saved state could not be stored. Try again.',
+              });
+            }
+          });
+          emulator.on('loadSave', async () => {
+            try {
+              const bytes = await importFile('battery');
+              if (!bytes) return;
+              const manager = emulator.gameManager;
+              const path = manager.getSaveFilePath();
+              const directories = path.split('/').slice(0, -1);
+              let directory = '';
+              for (const part of directories) {
+                if (!part) continue;
+                directory += `/${part}`;
+                if (!manager.FS.analyzePath(directory).exists)
+                  manager.FS.mkdir(directory);
+              }
+              manager.FS.writeFile(path, bytes);
+              manager.loadSaveFiles();
+              await new Promise((resolve, reject) =>
+                manager.FS.syncfs(false, (error) =>
+                  error ? reject(error) : resolve(),
+                ),
+              );
+            } catch {
+              send('error', {
+                message: 'The battery save could not be restored. Try again.',
+              });
+            }
+          });
+        }
         // 4.2.3 passes missing browser states to the core, producing an
         // unhandled rejection and a permanent fatal-error overlay.
         emulator.on('loadState', async () => {
@@ -527,9 +757,12 @@
               ? await emulator.storage.states.get(
                   `${emulator.getBaseFileName()}.state`,
                 )
-              : new Uint8Array(
-                  await (await emulator.selectFile()).arrayBuffer(),
-                );
+              : desktop
+                ? await importFile('state')
+                : new Uint8Array(
+                    await (await emulator.selectFile()).arrayBuffer(),
+                  );
+            if (desktop && !fromBrowser && !state) return;
             if (!state?.byteLength) {
               send('error', {
                 message: 'There is no saved state yet. Save a state first.',
@@ -580,10 +813,15 @@
           });
           return;
         }
+        const name = `${game.name.replace(/[^a-z0-9 _-]/gi, '_')}.sav`;
+        if (desktop) {
+          void exportFile(save, name);
+          return;
+        }
         const url = URL.createObjectURL(new Blob([save]));
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${game.name.replace(/[^a-z0-9 _-]/gi, '_')}.sav`;
+        link.download = name;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       },

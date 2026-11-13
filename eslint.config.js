@@ -7,11 +7,15 @@ export default tseslint.config(
   {
     ignores: [
       'dist/**',
+      'dist-desktop/**',
+      'desktop/target/**',
+      'desktop/gen/**',
       'public/emulatorjs/**',
       'node_modules/**',
       'src/routeTree.gen.ts',
       'playwright-report/**',
       'test-results/**',
+      'test-results-desktop/**',
       'src/lib/hairline/kernel.js',
     ],
   },

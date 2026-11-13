@@ -49,6 +49,7 @@
 }
 
 .developer-portrait[data-revealing] .portrait-tile,
+.developer-portrait[data-sponsor-revealing] .portrait-tile,
 .developer-portrait[data-original] .portrait-tile {
   opacity: 1;
   transform: perspective(100px) rotateY(0deg) scale(1);
@@ -56,6 +57,10 @@
 
 .developer-portrait[data-revealing] .portrait-tile {
   transition-delay: var(--tile-enter-delay, 0ms);
+}
+
+.developer-portrait[data-sponsor-revealing] .portrait-tile {
+  transition-delay: var(--tile-sponsor-enter-delay, 0ms);
 }
 
 .developer-portrait[data-original] .portrait-tile {

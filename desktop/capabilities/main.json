@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Only the local main webview can use bounded file commands, native-owned update offers, and save-safe shutdown. No general updater, shell, filesystem, URL opener, or remote IPC permissions.",
+  "local": true,
+  "webviews": ["main"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-import-file",
+    "allow-export-file",
+    "allow-complete-shutdown",
+    "allow-cancel-shutdown",
+    "allow-desktop-ready",
+    "allow-open-external",
+    "allow-update-status",
+    "allow-check-for-update",
+    "allow-download-update",
+    "allow-cancel-update-download",
+    "allow-install-update"
+  ]
+}

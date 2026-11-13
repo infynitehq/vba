@@ -11,6 +11,7 @@ import {
   type CheatFormValues,
 } from '../lib/cheat-format';
 import { exportCheats, importCheats } from '../data/backup';
+import { isDesktop, pickFile } from '../platform';
 import { useToast } from './Toast';
 import { Icon } from './Icon';
 import { Button } from './ui/button';
@@ -50,7 +51,10 @@ export function CheatSheet({
   const [editing, setEditing] = useState<Cheat | 'new' | null>(null);
   const put = useToggleCheat();
   const remove = useDataMutation(data.removeCheat);
-  const imported = useDataMutation((file: File) => importCheats(file, game.id));
+  const imported = useDataMutation(async (selected?: File) => {
+    const file = selected ?? (await pickFile('cheats'));
+    if (file) return importCheats(file, game.id);
+  });
   const exported = useDataMutation(() => exportCheats(game.id));
   return (
     <Dialog
@@ -125,7 +129,19 @@ export function CheatSheet({
                     variant="ghost"
                     size="xs"
                     disabled={imported.isPending}
-                    onClick={() => fileInput.current?.click()}
+                    onClick={() => {
+                      if (isDesktop)
+                        imported.mutate(undefined, {
+                          onSuccess: (count) => {
+                            if (count !== undefined)
+                              toast(
+                                'Cheats imported. Matching IDs were updated.',
+                              );
+                          },
+                          onError: (error) => toast(friendlyError(error)),
+                        });
+                      else fileInput.current?.click();
+                    }}
                   >
                     Import<span className="sr-only"> JSON</span>
                   </Button>

@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useBlocker } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import { useToast } from '../components/Toast';
 import { textButton } from '../components/ui';
 import { Button } from '../components/ui/button';
 import { PlayerLayout } from '../components/PlayerLayout';
+import { createCloseHandshake, registerPlayerSession } from '../player/session';
+import { createPlayerFileRelay } from '../player/files';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +40,9 @@ function Player() {
   const toast = useToast();
   const client = useQueryClient();
   const iframe = useRef<HTMLIFrameElement>(null);
+  const session = useRef<ReturnType<typeof createCloseHandshake> | undefined>(
+    undefined,
+  );
   const [channel] = useState(() => crypto.randomUUID());
   const [ready, setReady] = useState(false);
   const [showCheats, setShowCheats] = useState(false);
@@ -52,9 +57,43 @@ function Player() {
       location.origin,
     );
   useEffect(() => {
+    const frame = iframe.current?.contentWindow;
+    if (!frame) return;
+    const handshake = createCloseHandshake(frame, channel);
+    session.current = handshake;
+    const unregister = registerPlayerSession(handshake);
+    return () => {
+      unregister();
+      handshake.dispose();
+      session.current = undefined;
+    };
+  }, [channel, gameId]);
+  useBlocker({
+    enableBeforeUnload: false,
+    shouldBlockFn: async () => {
+      try {
+        await session.current?.prepareClose();
+        return false;
+      } catch (error) {
+        toast(
+          error instanceof Error
+            ? error.message
+            : 'Progress could not be saved. Your game is still open.',
+        );
+        return true;
+      }
+    },
+  });
+  useEffect(() => {
     markPlayed.current(gameId);
   }, [gameId]);
   useEffect(() => {
+    const files = createPlayerFileRelay((type, payload) =>
+      iframe.current?.contentWindow?.postMessage(
+        { source: 'pocket-gba-app', channel, type, ...payload },
+        location.origin,
+      ),
+    );
     const listener = (event: MessageEvent) => {
       if (
         event.origin !== location.origin ||
@@ -64,6 +103,11 @@ function Player() {
       )
         return;
       if (event.data.type === 'ready') setReady(true);
+      if (
+        import.meta.env.MODE === 'desktop' &&
+        (event.data.type === 'export-file' || event.data.type === 'import-file')
+      )
+        void files.receive(event.data);
       if (event.data.type === 'cheats-pending')
         setCheatsPending(event.data.pending === true);
       if (event.data.type === 'saved')
@@ -79,7 +123,10 @@ function Player() {
       if (event.data.type === 'request-exit') void navigate({ to: '/' });
     };
     window.addEventListener('message', listener);
-    return () => window.removeEventListener('message', listener);
+    return () => {
+      files.dispose();
+      window.removeEventListener('message', listener);
+    };
   }, [channel, client, game.gameCode, game.version, navigate, toast]);
   useEffect(() => {
     if (ready)
@@ -228,6 +275,7 @@ function Player() {
   );
   url.searchParams.set('gameId', gameId);
   url.searchParams.set('channel', channel);
+  if (import.meta.env.MODE === 'desktop') url.searchParams.set('desktop', '1');
   return (
     <PlayerLayout
       title={game.name}

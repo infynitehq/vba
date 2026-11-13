@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Classic } from 'loading-dev';
 import { Icon } from './Icon';
 import { AppLogo } from './AppLogo';
+import { useOffline } from './OfflineContext';
+import { isDesktop } from '../platform';
 export { RouteError } from './ErrorPage';
 const navLink =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-transparent px-3 text-xs font-medium text-ink/75 transition-colors hover:bg-surface hover:text-ink data-[status=active]:border-line data-[status=active]:bg-canvas data-[status=active]:text-ink data-[status=active]:shadow-sm sm:min-h-9';
@@ -14,6 +16,14 @@ export function Shell({
   children: ReactNode;
   fitViewport?: boolean;
 }) {
+  const offline = useOffline();
+  const offlineLabel = offline.error
+    ? 'Offline setup unavailable'
+    : offline.ready
+      ? isDesktop
+        ? 'Bundled for offline play'
+        : 'Ready offline'
+      : 'Preparing offline…';
   return (
     <div
       className={`mx-auto flex max-w-3xl flex-col px-5 pb-[env(safe-area-inset-bottom)] sm:px-8 ${fitViewport ? 'h-dvh' : 'min-h-dvh'}`}
@@ -62,9 +72,18 @@ export function Shell({
       >
         {children}
       </main>
-      <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-line py-4 text-[10px] leading-relaxed text-muted sm:text-xs">
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-line py-4 text-[10px] leading-relaxed text-muted sm:text-xs">
         <span>© {new Date().getFullYear()} infynite</span>
-        <p className="text-right">Not affiliated with Nintendo.</p>
+        <span
+          role="status"
+          title={offline.error || undefined}
+          aria-label={
+            offline.error ? `${offlineLabel}: ${offline.error}` : undefined
+          }
+        >
+          {offlineLabel}
+        </span>
+        <p className="ml-auto text-right">Not affiliated with Nintendo.</p>
       </footer>
     </div>
   );

@@ -36,10 +36,32 @@ test('touch controls fit the handheld in portrait and landscape and keep native 
     [740, 280],
   ]) {
     await page.setViewportSize({ width, height });
-    // A hidden native menu must still leave the dedicated portrait strip visible.
-    await player
-      .locator('.pocket-toolbar')
-      .evaluate((element) => element.classList.add('ejs_menu_bar_hidden'));
+    if (height > width) {
+      // A hidden native menu must still leave the dedicated portrait strip visible.
+      await player
+        .locator('.pocket-toolbar')
+        .evaluate((element) => element.classList.add('ejs_menu_bar_hidden'));
+    } else {
+      // Undo the portrait-only fault injection before measuring landscape.
+      await player
+        .locator('.pocket-toolbar')
+        .evaluate((element) => element.classList.remove('ejs_menu_bar_hidden'));
+      const reveal = player.getByRole('button', {
+        name: 'Show game controls',
+        exact: true,
+      });
+      if (await reveal.isVisible()) await reveal.click();
+      // Geometry checks can outlast the idle timer on a busy runner. Real
+      // keyboard navigation keeps the utilities awake without disabling idle
+      // behavior (which has its own dedicated regression test).
+      await bar.getByRole('button', { name: 'Pause', exact: true }).focus();
+      await page.keyboard.press('Tab');
+      await expect
+        .poll(() =>
+          bar.evaluate((element) => element.contains(document.activeElement)),
+        )
+        .toBe(true);
+    }
     for (const selector of targets) {
       const box = (await player.locator(selector).boundingBox())!;
       expect(box.x, selector).toBeGreaterThanOrEqual(0);
@@ -109,8 +131,14 @@ test('touch controls fit the handheld in portrait and landscape and keep native 
       await page.screenshot({ path: `test-results/handheld-${width}.png` });
     } else {
       await expect(bar).toBeVisible();
-      const more = bar.getByRole('button', { name: 'More options', exact: true });
-      await expect(more).toHaveCSS('background-color', 'rgba(25, 23, 21, 0.95)');
+      const more = bar.getByRole('button', {
+        name: 'More options',
+        exact: true,
+      });
+      await expect(more).toHaveCSS(
+        'background-color',
+        'rgba(25, 23, 21, 0.95)',
+      );
       await expect(more).toHaveCSS('border-top-style', 'solid');
       const screen = (await canvas.boundingBox())!;
       const utilities = (await bar.boundingBox())!;

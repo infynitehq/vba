@@ -40,7 +40,9 @@ test('re-import repairs an unreadable legacy ROM without losing its identity or 
     return id;
   });
   await page.addInitScript(() => {
-    if (location.pathname.endsWith('/player.html')) {
+    // Chromium may initialize the player frame while its URL is about:blank.
+    // Scope the fault to child frames instead of depending on navigation timing.
+    if (window !== window.top) {
       Blob.prototype.arrayBuffer = () =>
         Promise.reject(
           new DOMException(

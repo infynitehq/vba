@@ -76,7 +76,7 @@ test('an unavailable illustration engine does not block the library', async ({
   await expect(
     page.getByRole('button', { name: 'Add a game', exact: true }),
   ).toBeEnabled();
-  await expect(page.locator('.handheld-fallback')).toBeVisible();
+  await expect(page.locator('.handheld-fallback')).toHaveCount(0);
 });
 
 test('the empty state fits small, large, and landscape viewports without scrolling', async ({

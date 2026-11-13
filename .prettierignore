@@ -1,8 +1,12 @@
 pnpm-lock.yaml
 dist
+dist-desktop
+desktop/target
+desktop/gen
 node_modules
 public/emulatorjs
 src/routeTree.gen.ts
 test-results
+test-results-desktop
 playwright-report
 src/lib/hairline/kernel.js

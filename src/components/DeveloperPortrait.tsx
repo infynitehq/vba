@@ -8,7 +8,11 @@ const tiles = Array.from({ length: columns * columns }, (_, index) => ({
   y: Math.floor(index / columns),
 }));
 
-export function DeveloperPortrait() {
+export function DeveloperPortrait({
+  sponsorHovered = false,
+}: {
+  sponsorHovered?: boolean;
+}) {
   const base = import.meta.env.BASE_URL;
   const [original, setOriginal] = useState(false);
   const toggleOriginal = () => {
@@ -21,6 +25,7 @@ export function DeveloperPortrait() {
       aria-pressed={original}
       title="Double-click to toggle the original photo"
       data-original={original ? '' : undefined}
+      data-sponsor-revealing={sponsorHovered ? '' : undefined}
       onDoubleClick={toggleOriginal}
       onClick={(event) => {
         // Native keyboard activation has no click count. Mouse uses double-click.
@@ -79,6 +84,7 @@ export function DeveloperPortrait() {
                 backgroundPosition: `${(x / (columns - 1)) * 100}% ${(y / (columns - 1)) * 100}%`,
                 '--tile-enter-delay': `${(x + y) * 16}ms`,
                 '--tile-leave-delay': `${((columns - 1) * 2 - x - y) * 16}ms`,
+                '--tile-sponsor-enter-delay': `${((columns - 1 - y) / (columns - 1)) * waveDelay}ms`,
               } as CSSProperties
             }
           />

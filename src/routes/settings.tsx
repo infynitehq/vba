@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { Shell, Pending, RouteError } from '../components/Shell';
 import { useToast } from '../components/Toast';
@@ -17,6 +17,11 @@ import {
   DialogDescription,
 } from '../components/ui/dialog';
 import { About } from '../components/About';
+import { isDesktop, openExternal, pickFile } from '../platform';
+
+const DesktopUpdateSettings = isDesktop
+  ? lazy(() => import('../updates/SettingsUpdates'))
+  : null;
 
 const storageQuery = { queryKey: ['storage'], queryFn: storageStatus };
 export const Route = createFileRoute('/settings')({
@@ -32,7 +37,10 @@ function Settings() {
   const { data: storage, refetch } = useQuery(storageQuery);
   const importInput = useRef<HTMLInputElement>(null);
   const exported = useDataMutation(() => exportCheats());
-  const imported = useDataMutation((file: File) => importCheats(file));
+  const imported = useDataMutation(async (selected?: File) => {
+    const file = selected ?? (await pickFile('cheats'));
+    if (file) return importCheats(file);
+  });
   const clear = useDataMutation(clearAllData);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const persist = useDataMutation(async () => {
@@ -44,7 +52,8 @@ function Settings() {
         : 'Your browser did not grant persistent storage. Install the app and keep backups.',
     );
   });
-  const canPersist = typeof navigator.storage?.persist === 'function';
+  const canPersist =
+    !isDesktop && typeof navigator.storage?.persist === 'function';
   return (
     <Shell>
       <h1 className={pageTitle}>Settings</h1>
@@ -54,8 +63,10 @@ function Settings() {
             title="Device storage"
             description={
               storage?.quota
-                ? `${size(storage.usage)} of ${size(storage.quota)} browser quota`
-                : 'Storage estimates aren’t available in this browser.'
+                ? `${size(storage.usage)} of ${size(storage.quota)} ${isDesktop ? 'webview' : 'browser'} quota`
+                : isDesktop
+                  ? 'Games and saves are stored locally in this app’s webview storage. Usage estimates are unavailable.'
+                  : 'Storage estimates aren’t available in this browser.'
             }
             action={
               <Button
@@ -76,38 +87,41 @@ function Settings() {
               />
             )}
           </SettingsRow>
-          <SettingsRow
-            title="Protect local storage"
-            description={
-              storage?.persistent
-                ? 'Your browser has granted persistent storage.'
-                : canPersist
-                  ? 'Ask your browser to keep games and saves on this device.'
-                  : 'Persistent storage isn’t supported by this browser.'
-            }
-            action={
-              <Button
-                variant="outline"
-                disabled={
-                  persist.isPending || storage?.persistent || !canPersist
-                }
-                onClick={() =>
-                  persist.mutate(undefined, {
-                    onError: (error) => toast(friendlyError(error)),
-                  })
-                }
-              >
-                {storage?.persistent
-                  ? 'Enabled'
-                  : persist.isPending
-                    ? 'Requesting…'
-                    : 'Enable protection'}
-              </Button>
-            }
-          />
+          {!isDesktop && (
+            <SettingsRow
+              title="Protect local storage"
+              description={
+                storage?.persistent
+                  ? 'Your browser has granted persistent storage.'
+                  : canPersist
+                    ? 'Ask your browser to keep games and saves on this device.'
+                    : 'Persistent storage isn’t supported by this browser.'
+              }
+              action={
+                <Button
+                  variant="outline"
+                  disabled={
+                    persist.isPending || storage?.persistent || !canPersist
+                  }
+                  onClick={() =>
+                    persist.mutate(undefined, {
+                      onError: (error) => toast(friendlyError(error)),
+                    })
+                  }
+                >
+                  {storage?.persistent
+                    ? 'Enabled'
+                    : persist.isPending
+                      ? 'Requesting…'
+                      : 'Enable protection'}
+                </Button>
+              }
+            />
+          )}
           <p className="px-4 py-3 text-[11px] leading-relaxed text-muted">
-            Protection isn’t a backup. Clearing browser data can still remove
-            games and saves.
+            {isDesktop
+              ? 'Local storage isn’t a backup. Clearing app data or removing the app’s storage can remove games and saves. Export backups to files you keep separately.'
+              : 'Protection isn’t a backup. Clearing browser data can still remove games and saves.'}
           </p>
         </SettingsGroup>
 
@@ -136,7 +150,16 @@ function Settings() {
               <Button
                 variant="outline"
                 disabled={imported.isPending}
-                onClick={() => importInput.current?.click()}
+                onClick={() => {
+                  if (isDesktop)
+                    imported.mutate(undefined, {
+                      onSuccess: (count) => {
+                        if (count !== undefined) toast('Cheats imported.');
+                      },
+                      onError: (error) => toast(friendlyError(error)),
+                    });
+                  else importInput.current?.click();
+                }}
               >
                 Import cheats
               </Button>
@@ -159,6 +182,57 @@ function Settings() {
           />
         </SettingsGroup>
 
+        {isDesktop && (
+          <SettingsGroup title="Updates" id="update-settings">
+            {DesktopUpdateSettings ? (
+              <Suspense
+                fallback={
+                  <p className="px-4 py-4 text-xs text-muted">
+                    Loading update settings…
+                  </p>
+                }
+              >
+                <DesktopUpdateSettings />
+              </Suspense>
+            ) : null}
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-xs">Manual downloads</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                  All desktop installers, including Linux .deb packages.
+                </p>
+              </div>
+              <a
+                className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-sm text-xs text-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+                href="https://github.com/infynitehq/vba/releases"
+                target="_blank"
+                rel="noreferrer"
+                onClick={(event) => {
+                  if (!isDesktop) return;
+                  event.preventDefault();
+                  void openExternal(
+                    'https://github.com/infynitehq/vba/releases',
+                  ).catch((error: unknown) => toast(friendlyError(error)));
+                }}
+              >
+                View releases
+                <svg
+                  aria-hidden="true"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M7 17 17 7M7 7h10v10" />
+                </svg>
+              </a>
+            </div>
+          </SettingsGroup>
+        )}
         <SettingsGroup title="Reset" id="reset-settings">
           <SettingsRow
             title="Clear local data"

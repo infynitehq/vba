@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
-import { ToastProvider } from './components/Toast';
+import { ToastProvider, useToast } from './components/Toast';
 import { InstallProvider } from './components/Install';
 import { Pending } from './components/Shell';
 import {
@@ -12,6 +12,18 @@ import {
   NotFoundPage,
 } from './components/ErrorPage';
 import './styles/app.css';
+import { installDesktopLifecycle } from './lifecycle/desktop';
+
+const DesktopUpdates =
+  import.meta.env.MODE === 'desktop'
+    ? lazy(() => import('./updates/DesktopUpdates'))
+    : null;
+
+function DesktopLifecycle() {
+  const toast = useToast();
+  useEffect(() => installDesktopLifecycle(toast), [toast]);
+  return null;
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +51,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <InstallProvider>
           <ToastProvider>
+            <DesktopLifecycle />
+            {DesktopUpdates ? (
+              <Suspense fallback={null}>
+                <DesktopUpdates router={router} />
+              </Suspense>
+            ) : null}
             <RouterProvider router={router} />
           </ToastProvider>
         </InstallProvider>

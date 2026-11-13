@@ -1,8 +1,14 @@
 node_modules/
 dist/
+dist-desktop/
+desktop/target/
+desktop/gen/
+desktop/icons/
+public/icons/
 .vercel/
 public/emulatorjs/
 test-results/
+test-results-desktop/
 playwright-report/
 .env.local
 *.gba
