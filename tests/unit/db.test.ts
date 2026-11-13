@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { data, type Game } from '../../src/data/db';
+import { hashRom } from '../../src/lib/hash';
 const game: Game = {
   id: 'game-a',
   hash: 'hash-a',
@@ -27,7 +28,7 @@ describe('IndexedDB data layer', () => {
   });
   it('round-trips games, hashes, blobs and last played', async () => {
     await data.addGame(game);
-    expect((await data.game(game.id)).blob.size).toBe(4);
+    expect(((await data.game(game.id)).blob as Blob).size).toBe(4);
     expect((await data.duplicate(game.hash))?.id).toBe(game.id);
     await data.played(game.id);
     expect((await data.game(game.id)).lastPlayedAt).toBeGreaterThan(0);
@@ -42,6 +43,28 @@ describe('IndexedDB data layer', () => {
     ]);
     await data.removeCheat(cheat.id);
     expect(await data.cheats(game.id)).toEqual([]);
+  });
+  it('repairs legacy ROM data by content without replacing game metadata or cheats', async () => {
+    const buffer = new Uint8Array([1, 2, 3, 4]).buffer;
+    const hash = await hashRom(buffer);
+    const original = {
+      ...game,
+      hash,
+      name: 'My renamed game',
+      lastPlayedAt: 123,
+      lastSavedAt: 456,
+      autoSaveOnExit: false,
+    };
+    await data.addGame(original);
+    await data.putCheat(cheat);
+    await data.repairGame(buffer);
+    expect(await data.game(game.id)).toEqual({ ...original, blob: buffer });
+    expect(await data.cheats(game.id)).toEqual([cheat]);
+    expect(await data.games()).toHaveLength(1);
+    await expect(data.repairGame(new Uint8Array([9]).buffer)).rejects.toThrow(
+      'not in your library',
+    );
+    expect(await data.game(game.id)).toEqual({ ...original, blob: buffer });
   });
   it('preserves saved timestamps when recording a play session', async () => {
     await data.addGame({ ...game, lastSavedAt: 1234 });

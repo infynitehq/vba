@@ -42,7 +42,12 @@ async function boot(cheats: (typeof master)[]) {
     transaction: (store: string) => ({
       objectStore: () => ({
         get: () =>
-          request({ id: 'game', hash: '12345678', blob: new Blob(['rom']) }),
+          request({
+            id: 'game',
+            hash: '12345678',
+            blob: new Blob(['rom']),
+            size: 3,
+          }),
         index: () => ({
           getAll: () => request(store === 'cheats' ? [...cheats] : []),
         }),

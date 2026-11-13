@@ -1,12 +1,14 @@
 import { openDB, type DBSchema } from 'idb';
 import type { Cheat } from '../lib/cheat-format';
+import { hashRom } from '../lib/hash';
 
 export interface Game {
   id: string;
   hash: string;
   name: string;
   filename: string;
-  blob: Blob;
+  // ArrayBuffer for new imports; Blob remains readable for existing libraries.
+  blob: Blob | ArrayBuffer;
   size: number;
   gameCode: string;
   makerCode: string;
@@ -52,6 +54,20 @@ export const data = {
     return (
       (await (await database()).getFromIndex('games', 'hash', hash)) ?? null
     );
+  },
+  async repairGame(buffer: ArrayBuffer) {
+    // Match content, never a filename, so a different ROM cannot replace saves'
+    // game identity. Read fresh metadata inside the write transaction.
+    const hash = await hashRom(buffer);
+    const db = await database();
+    const tx = db.transaction('games', 'readwrite');
+    const game = await tx.store.index('hash').get(hash);
+    if (!game) {
+      await tx.done;
+      throw new Error('This game is not in your library.');
+    }
+    await tx.store.put({ ...game, blob: buffer, size: buffer.byteLength });
+    await tx.done;
   },
   async played(id: string) {
     const db = await database();

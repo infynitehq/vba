@@ -67,8 +67,9 @@ function Library() {
       queryFn: () => data.duplicate(hash),
     });
     if (duplicate) {
+      await data.repairGame(buffer);
       toast(
-        `“${duplicate.name}” is already in your library. The same file wasn’t added twice.`,
+        `“${duplicate.name}” is already in your library. Its local game file was refreshed; saves and cheats were kept.`,
       );
       return;
     }
@@ -77,7 +78,7 @@ function Library() {
       hash,
       name: filename.replace(/\.gba$/i, '').replace(/[_]/g, ' '),
       filename,
-      blob: new Blob([buffer]),
+      blob: buffer,
       size: buffer.byteLength,
       gameCode: header.gameCode,
       makerCode: header.makerCode,

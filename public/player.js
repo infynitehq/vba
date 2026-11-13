@@ -422,7 +422,20 @@
     // Pass local bytes through EmulatorJS's supported in-memory input path.
     // Fetching an IndexedDB-backed blob URL adds an unnecessary failure point
     // in iOS standalone PWAs (reported by the core as "Network Error").
-    const gameData = new Uint8Array(await game.blob.arrayBuffer());
+    let gameData;
+    try {
+      const buffer =
+        game.blob instanceof ArrayBuffer
+          ? game.blob
+          : await game.blob.arrayBuffer();
+      gameData = new Uint8Array(buffer);
+      if (!gameData.byteLength || gameData.byteLength !== game.size)
+        throw new Error('Stored game size does not match.');
+    } catch {
+      throw new Error(
+        'The stored game file could not be read. Return to Library, choose Add a game, and select the same original game file to repair it. Your saves and cheats will be kept. Do not delete the game or clear site data.',
+      );
+    }
     // Always self-hosted. Neither query parameters nor a CDN can redirect the runtime.
     const path = new URL('./emulatorjs/', location.href).href;
     Object.assign(window, {

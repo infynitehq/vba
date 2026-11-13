@@ -56,6 +56,7 @@ async function boot() {
                   id: 'game',
                   hash: '12345678',
                   blob: new Blob(['rom']),
+                  size: 3,
                 }),
               index: () => ({ getAll: () => request([]) }),
             }),
