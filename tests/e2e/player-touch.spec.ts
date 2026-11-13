@@ -109,6 +109,9 @@ test('touch controls fit the handheld in portrait and landscape and keep native 
       await page.screenshot({ path: `test-results/handheld-${width}.png` });
     } else {
       await expect(bar).toBeVisible();
+      const more = bar.getByRole('button', { name: 'More options', exact: true });
+      await expect(more).toHaveCSS('background-color', 'rgba(25, 23, 21, 0.95)');
+      await expect(more).toHaveCSS('border-top-style', 'solid');
       const screen = (await canvas.boundingBox())!;
       const utilities = (await bar.boundingBox())!;
       const playerFrame = (await page.locator('iframe').boundingBox())!;

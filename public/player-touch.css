@@ -546,6 +546,9 @@
     .pocket-icon-button {
     position: absolute;
     inset: 8px auto auto calc(50% - 22px);
+    border: 1px solid #ffffff24;
+    background: #191715f2;
+    color: #eeeae3;
   }
 
   /* Square movement surface with full-size directional targets. */
