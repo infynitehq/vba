@@ -96,7 +96,7 @@ test('workflow wiring gates draft publication on updater signing, not paid certi
   );
   assert.match(
     workflow,
-    /draft:\n\s+if: needs\.validate\.outputs\.updater == 'true'/,
+    /draft:\r?\n\s+if: needs\.validate\.outputs\.updater == 'true'/,
   );
   assert.match(workflow, /^\s+environment: release$/m);
   assert.match(

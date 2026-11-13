@@ -1,9 +1,17 @@
 # Pocket GBA
 
-Play your own Game Boy Advance games on the web or desktop. Local library, touch
-and keyboard controls, cheats, save states, and offline play. No accounts or uploads.
+For when "I'll just play until the next save point" turns into an evening.
 
-## Get started
+Pocket GBA plays your Game Boy Advance games in a browser or on your desktop.
+Bring your own games; keep them in a local library. Use a keyboard or touch
+controls, make save states before questionable decisions, and turn on cheats
+when you've suffered enough. Offline play, too.
+
+No account to make. No games to upload. Just pick something and play.
+
+<img src="./preview.png" alt="Pocket GBA app preview" width="750" />
+
+## Press Start
 
 Requires **Node 22.19+** and **pnpm 12**.
 
@@ -13,8 +21,8 @@ pnpm fetch-emulator
 pnpm dev
 ```
 
-Open **http://localhost:5173** and add a `.gba` file or a ZIP containing one game.
-The emulator download includes no games.
+Open **http://localhost:5173**, add a `.gba` file or a ZIP containing one game,
+and there goes your afternoon. The emulator download doesn't include games.
 
 ## Commands
 
@@ -30,31 +38,36 @@ The emulator download includes no games.
 Desktop uses **Tauri 2** and requires Rust and
 [platform tools](https://v2.tauri.app/start/prerequisites/).
 
-## Desktop releases
+## Taking it to the desktop
 
-Public GitHub Releases can distribute macOS `.dmg`, Windows `.exe`, and Linux
-`.AppImage` / `.deb` installers without paid signing certificates. OS-unsigned
-macOS and Windows builds may trigger security warnings or be blocked.
+Want a standalone app? Public GitHub Releases can distribute macOS `.dmg`,
+Windows `.exe`, and Linux `.AppImage` / `.deb` installers without paid signing
+certificates.
 
-Updates still require a **free cryptographic signing key**, your consent, and a
-successful save before installation. Apple/Windows signing is optional and
-separate. See [release and updater setup](docs/updates.md); updates are not live
-until configured and tested.
+The catch: unsigned macOS and Windows builds may trigger security warnings or be blocked.
 
-[Sponsor my work](https://github.com/sponsors/tech-savvy-guy)—the games run on
-nostalgia. The developer runs on coffee.
+App updates need a **free cryptographic signing key**, which is separate from
+optional Apple/Windows signing. They also need your consent and a successful save
+before installation. Nobody wants an updater eating their boss fight.
 
-## Good to know
+See [release and updater setup](docs/updates.md); updates aren't live until
+configured and tested.
 
-- **Offline:** on the web, wait for **Ready offline**. Test with a production build, not `pnpm dev`.
-- **Phone:** open the HTTPS site and add it to your home screen.
-- **Saves:** keep external backups. Browser and desktop data are separate.
-- **Cheats:** changes apply when you reopen the game.
-- **Deploy:** Vercel configuration is included; the web build outputs to `dist/`.
-- **Icons:** `public/logo.svg` is the source. Web and desktop commands generate
-  their icons automatically; generated files are ignored by Git.
+## Before you get comfortable
 
-## Legal
+- **Going offline?** Wait for **Ready offline** in the web app before disappearing.
+  Test this with a production build, not `pnpm dev`.
+- **Playing on your phone?** Open the HTTPS site and add it to your home screen.
+- **Attached to your save file?** Keep external backups. Browser and desktop data
+  are separate, so don't expect your progress to follow you between them.
+- **Trying a cheat?** Reopen the game for changes to take effect. We won't judge.
+
+## Buy me an extra life
+
+[Sponsor my work](https://github.com/sponsors/tech-savvy-guy) to keep Pocket GBA
+going. No cheat code for rent, unfortunately.
+
+## The small print
 
 Bring your own legally obtained games. No ROMs or BIOS are bundled.
 Not affiliated with Nintendo.
