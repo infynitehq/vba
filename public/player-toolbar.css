@@ -1,4 +1,57 @@
 /* Scoped overrides for the pinned emulator UI; no remote icon/font assets. */
+#game.ejs_parent,
+#game.ejs_parent *,
+#game.ejs_parent ::before,
+#game.ejs_parent ::after {
+  font-family:
+    'Ioskeley Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+#game .ejs_loading_text {
+  bottom: max(24px, env(safe-area-inset-bottom));
+  width: calc(100% - 48px);
+  max-width: 36ch;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: #aaa59d;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+/* The app's status message already displays this error. Avoid a second,
+   native red toast underneath it. Keep settings available for recovery. */
+#game.pocket-startup-error .ejs_error_text {
+  display: none;
+}
+
+#game.pocket-startup-error .ejs_menu_button {
+  min-height: 44px;
+  width: auto;
+  max-width: calc(100vw - 48px);
+  padding: 10px 16px;
+  border: 1px solid #ffffff24;
+  border-radius: 8px;
+  background: #191715;
+  color: #eeeae3;
+  font-size: 12px;
+  line-height: 1.6;
+  box-shadow: none;
+}
+
+#game.pocket-startup-error .ejs_menu_button:hover {
+  background: #e9bb780c;
+  color: #e9bb78;
+}
+
+#game.pocket-startup-error .ejs_menu_button:focus-visible {
+  outline: 2px solid #e9bb78;
+  outline-offset: 3px;
+}
+
 .pocket-rotate-prompt {
   display: none;
 }

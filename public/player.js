@@ -434,7 +434,8 @@
       EJS_gameID: parseInt(game.hash.slice(0, 8), 16),
       EJS_pathtodata: path,
       EJS_startOnLoaded: true,
-      EJS_color: '#d64024',
+      EJS_color: '#e9bb78',
+      EJS_backgroundColor: '#191715',
       EJS_language: 'en-US',
       // 4.2.3 loader checks !== false (opposite the current docs).
       EJS_disableAutoLang: false,
@@ -485,8 +486,14 @@
         }
         const original = emulator.startGameError.bind(emulator);
         emulator.startGameError = (text) => {
+          document.getElementById('start-gate').hidden = true;
           report(new Error(text));
-          return original(text);
+          const result = original(text);
+          emulator.elements.parent.classList.add('pocket-startup-error');
+          // Startup failures rebuild settings before the normal toolbar (and
+          // its theme adapter) is installed. Theme this path independently.
+          window.PocketSettings?.install(emulator);
+          return result;
         };
       },
       EJS_onGameStart: () => {

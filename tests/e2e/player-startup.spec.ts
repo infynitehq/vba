@@ -1,6 +1,8 @@
 import { test, expect, devices } from '@playwright/test';
 import { diagnosticRom } from './fixtures/diagnostic-rom';
 
+test.use({ userAgent: devices['iPhone 13'].userAgent });
+
 test('iOS preloads the core but starts it only after a tap inside the player', async ({
   browser,
 }) => {
@@ -60,6 +62,10 @@ test('iOS preloads the core but starts it only after a tap inside the player', a
             .EJS_emulator.started,
       ),
     ).toBeFalsy();
+    await expect(player.locator('#game')).toHaveCSS(
+      'background-color',
+      'rgb(25, 23, 21)',
+    );
     expect(
       await content.evaluate(
         () =>
@@ -87,4 +93,49 @@ test('iOS preloads the core but starts it only after a tap inside the player', a
   } finally {
     await context.close();
   }
+});
+
+test('startup errors retain the player theme and accessible settings', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByTestId('game-upload').setInputFiles({
+    name: 'Startup theme.gba',
+    mimeType: 'application/octet-stream',
+    buffer: diagnosticRom(),
+  });
+  await page.getByRole('button', { name: 'Got it' }).click();
+  await page.getByRole('link', { name: 'Play Startup theme' }).click();
+  const player = page.frameLocator('iframe');
+  await expect(player.getByRole('button', { name: 'Tap to play' })).toBeVisible(
+    {
+      timeout: 45_000,
+    },
+  );
+  const frame = await (await page
+    .locator('iframe')
+    .elementHandle())!.contentFrame();
+  await frame!.evaluate(() => {
+    const emulator = (
+      window as unknown as {
+        EJS_emulator: { startGameError(message: string): void };
+      }
+    ).EJS_emulator;
+    emulator.startGameError('Network Error');
+  });
+  await page.getByRole('button', { name: 'Got it' }).click();
+  await expect(player.locator('#message')).toHaveText('Network Error');
+  await expect(player.locator('.ejs_error_text')).toBeHidden();
+  const settings = player.getByRole('button', {
+    name: 'Emulator settings',
+    exact: true,
+  });
+  await expect(settings).toHaveCSS('background-color', 'rgb(25, 23, 21)');
+  await expect(settings).toHaveCSS('color', 'rgb(238, 234, 227)');
+  await settings.click();
+  const dialog = player.getByRole('dialog', { name: 'Emulator settings' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS('background-color', 'rgb(25, 23, 21)');
+  await dialog.getByRole('button', { name: 'Close emulator settings' }).click();
+  await expect(dialog).toBeHidden();
 });
