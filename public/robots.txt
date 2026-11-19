@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /player.html
+Disallow: /player-preview.html
+Disallow: /emulatorjs/
+
+Sitemap: https://vba.infynite.in/sitemap.xml

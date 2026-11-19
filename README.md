@@ -38,6 +38,16 @@ and there goes your afternoon. The emulator download doesn't include games.
 Desktop uses **Tauri 2** and requires Rust and
 [platform tools](https://v2.tauri.app/start/prerequisites/).
 
+## Web search and sharing
+
+The production web URL is `https://vba.infynite.in/`. Search and social metadata
+are served directly in `index.html`; `public/robots.txt` and `public/sitemap.xml`
+cover the public homepage, not local game libraries or the embedded player.
+If the domain changes, update these three files and the image generator.
+
+The share card is `public/og-image.png` (1200 × 630). Regenerate it with
+`pnpm make-social-image` after editing `scripts/make-social-image.mjs` or the logo.
+
 ## Taking it to the desktop
 
 Want a standalone app? Public GitHub Releases can distribute macOS `.dmg`,

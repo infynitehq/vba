@@ -12,6 +12,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "fetch-emulator": "node --use-system-ca scripts/fetch-emulator.mjs",
     "make-icons": "node scripts/make-icons.mjs",
+    "make-social-image": "node scripts/make-social-image.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
